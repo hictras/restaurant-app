@@ -149,6 +149,7 @@
         let menuCategories = [];
         let itemLookup = {};
         let previousLatestStatus = '';
+        let sentToTableNotifiedIds = new Set();
 
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
@@ -241,14 +242,31 @@
                     updateCartUI();
                 }
 
-                const tableOrders = data.orders.filter(o => String(o.tableNumber) === String(currentTable) && o.kitchenStatus !== 'Sent to Table');
+                const tableOrders = data.orders.filter(o => String(o.tableNumber) === String(currentTable));
+                
+                // Check for orders marked as 'Sent to Table' by kitchen
+                tableOrders.forEach(ord => {
+                    if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
+                        sentToTableNotifiedIds.add(ord.orderId);
+                        
+                        activationSound.play().then(() => {
+                            activationSound.pause();
+                            activationSound.currentTime = 0;
+                        }).catch(e => console.log('Audio blocked:', e));
+
+                        showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared and is being brought to your table!`, '🍲');
+                        triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
+                    }
+                });
+
+                const activeTableOrders = tableOrders.filter(o => o.kitchenStatus !== 'Sent to Table');
                 const banner = document.getElementById('orderStatusBanner');
                 const trackerContainer = document.getElementById('statusTrackerItems');
                 
-                if (tableOrders.length > 0) {
+                if (activeTableOrders.length > 0) {
                     banner.classList.remove('hidden');
-                    document.getElementById('orderCountBadge').innerText = `${tableOrders.length} active`;
-                    const currentLatestStatus = tableOrders[tableOrders.length - 1].kitchenStatus;
+                    document.getElementById('orderCountBadge').innerText = `${activeTableOrders.length} active`;
+                    const currentLatestStatus = activeTableOrders[activeTableOrders.length - 1].kitchenStatus;
                     document.getElementById('latestStatusBadge').innerText = currentLatestStatus;
                     
                     if (currentLatestStatus !== previousLatestStatus && previousLatestStatus !== '') {
@@ -256,7 +274,7 @@
                     }
                     previousLatestStatus = currentLatestStatus;
 
-                    let ordersHtml = tableOrders.map((ord, idx) => {
+                    let ordersHtml = activeTableOrders.map((ord, idx) => {
                         let itemsStr = ord.items.map(i => `${i.qty}x ${i.name}`).join(', ');
                         return `
                             <div class="flex justify-between items-center bg-indigo-800/60 p-2.5 rounded-lg text-xs">
