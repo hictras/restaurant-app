@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kun Lebnéné - Full Restaurant System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #f28538;
+            --primary-dark: #d9681b;
+            --bg: #faf6f0;
+            --card-bg: #ffffff;
+            --text: #2f2a24;
+            --text-muted: #7b736b;
+            --border: #f0e6dc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", Tahoma, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 120px; }
+        .sticky-top-wrapper { position: sticky; top: 0; z-index: 50; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+        header { border-bottom: 1px solid var(--border); padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; max-width: 960px; margin: 0 auto; }
+        .header-titles { text-align: left; }
+        html[dir="rtl"] .header-titles { text-align: right; }
+        header h1 { font-size: 1.4rem; color: var(--primary); letter-spacing: 0.5px; line-height: 1.2; }
+        header p { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .btn-mode { background: #111; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; cursor: pointer; border: none; }
+        .nav-tabs { display: flex; overflow-x: auto; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); gap: 0.5rem; white-space: nowrap; max-width: 960px; margin: 0 auto; }
+        .nav-tabs button { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; color: var(--text); }
+        .nav-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .container { max-width: 960px; margin: 1rem auto; padding: 0 1rem; }
+        .section-title { font-size: 1.25rem; margin: 1.8rem 0 0.8rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.9rem; }
+        .card { background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border); padding: 0.9rem; display: flex; flex-direction: column; justify-content: space-between; }
+        .card-info h3 { font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .card-info .alt-name { font-size: 0.85rem; color: var(--primary-dark); margin-bottom: 4px; }
+        .card-info p { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+        .card-action { display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
+        .price { font-weight: 700; color: var(--primary-dark); font-size: 0.95rem; }
+        .btn-add { background: var(--primary); color: #fff; border: none; padding: 5px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.82rem; }
+        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 0.8rem 1rem; box-shadow: 0 -3px 15px rgba(0,0,0,0.1); max-width: 960px; margin: 0 auto; z-index: 40; border-radius: 16px 16px 0 0; }
+        .qty-badge-red { background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 7px; border-radius: 9999px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- ROLE SWITCHER BAR -->
+    <div class="bg-gray-900 text-white text-xs py-2 px-4 flex justify-between items-center">
+        <span>📍 System View Mode:</span>
+        <div class="flex gap-2">
+            <button onclick="switchView('customer')" id="mode-customer" class="bg-orange-500 px-3 py-1 rounded font-bold">Customer App</button>
+            <button onclick="switchView('admin')" id="mode-admin" class="bg-gray-700 px-3 py-1 rounded font-bold">Admin Panel</button>
+            <button onclick="switchView('kitchen')" id="mode-kitchen" class="bg-gray-700 px-3 py-1 rounded font-bold">Kitchen Display</button>
+        </div>
+    </div>
+
+    <!-- TABLE SELECT MODAL -->
+    <div id="tableModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
+            <h2 class="text-xl font-bold mb-2 text-gray-800">Select Your Table</h2>
+            <select id="tableSelect" class="w-full border p-3 rounded-xl mb-4 text-center font-bold text-lg bg-gray-50">
+                <option value="1">Table #1</option><option value="2">Table #2</option><option value="3">Table #3</option>
+                <option value="4">Table #4</option><option value="5">Table #5</option><option value="6">Table #6</option>
+            </select>
+            <button onclick="saveTableSelection()" class="w-full bg-[#f28538] text-white py-3 rounded-xl font-semibold">Confirm Table 🚀</button>
+        </div>
+    </div>
+
+    <!-- ================= VIEW 1: CUSTOMER APP ================= -->
+    <div id="view-customer" class="app-view">
+        <div class="sticky-top-wrapper">
+            <header>
+                <div class="header-titles">
+                    <h1 id="brandTitle">KUN LEBNÉNÉ</h1>
+                    <p id="brandSubtitle">Capo Batroun • Prices in USD (Includes VAT & Service)[cite: 1]</p>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <button class="btn-mode" id="tableBtnDisplay" onclick="changeTable()">Table --</button>
+                    <button class="btn-mode" id="langToggleBtn" onclick="toggleLanguage()">عربي</button>
+                </div>
+            </header>
+            <div class="nav-tabs" id="categoryNav"></div>
+        </div>
+
+        <div class="container" id="menuContainer"></div>
+
+        <div class="cart-bar">
+            <div id="activationWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium">
+                ⏳ Table is locked. Clicking send will ring the manager's bell to activate your table.
+            </div>
+            <div onclick="toggleCartDrawer()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="itemCountBadge" style="background: var(--primary); color: white; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: bold;">0 items</span>
+                    <span style="font-weight: 600; font-size: 0.95rem;" id="lblViewList">🛒 View Order List</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.1rem; font-weight: bold; color: var(--primary-dark);" id="barTotal">$0.00</span>
+                    <span id="chevronIcon" style="font-weight: bold; transition: transform 0.2s;">▲</span>
+                </div>
+            </div>
+
+            <div id="cartDetails" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+                <div id="cartItemsList" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+                <button id="sendOrderBtn" onclick="sendOrder()" style="width: 100%; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                    Send Order 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= VIEW 2: ADMIN PANEL ================= -->
+    <div id="view-admin" class="app-view hidden max-w-5xl mx-auto p-6">
+        <header class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border">
+            <h1 class="text-2xl font-bold text-indigo-600">🍔 Restaurant Management Console</h1>
+        </header>
+
+        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <button onclick="switchAdminTab('tables')" id="tab-tables" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow">1. Tables</button>
+            <button onclick="switchAdminTab('menu')" id="tab-menu" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border">2. Menu Management</button>
+            <button onclick="switchAdminTab('bills')" id="tab-bills" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border">3. Bills & Payments</button>
+            <button onclick="switchAdminTab('revenue')" id="tab-revenue" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border">4. Daily Revenue</button>
+        </div>
+
+        <div id="admin-sec-tables" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">🪑 Table Status & Activation Board</h2>
+            <div id="adminTablesGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+        </div>
+
+        <div id="admin-sec-menu" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6 hidden">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">📋 Add / Delete Menu Items</h2>
+            <form onsubmit="addMenu(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6 bg-gray-50 p-4 rounded-xl border">
+                <input type="text" id="mName" placeholder="Item Name (EN)" required class="border p-2.5 rounded-lg text-sm bg-white">
+                <input type="number" step="0.01" id="mPrice" placeholder="Price ($)" required class="border p-2.5 rounded-lg text-sm bg-white">
+                <select id="mCat" class="border p-2.5 rounded-lg text-sm bg-white">
+                    <option value="Salads & Veggies">Salads & Veggies</option>
+                    <option value="Cold Mezza">Cold Mezza</option>
+                    <option value="Coffee, Tea & Shisha">Coffee, Tea & Shisha</option>
+                </select>
+                <button class="bg-indigo-600 text-white rounded-lg font-semibold text-sm py-2.5">Add Item</button>
+            </form>
+            <div id="adminMenuList" class="space-y-3"></div>
+        </div>
+
+        <div id="admin-sec-bills" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6 hidden">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">💵 Unpaid Bills & Active Accounts</h2>
+            <div id="adminBillsList" class="space-y-3"><p class="text-gray-400 italic text-sm">No active bills.</p></div>
+        </div>
+
+        <div id="admin-sec-revenue" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6 hidden">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">📊 Total Revenue by Table & Day</h2>
+            <div id="adminRevenueContainer" class="space-y-6"><p class="text-gray-400 italic text-sm">No settled revenue data available yet.</p></div>
+        </div>
+    </div>
+
+    <!-- ================= VIEW 3: KITCHEN DISPLAY ================= -->
+    <div id="view-kitchen" class="app-view hidden bg-gray-900 text-white min-h-screen p-6">
+        <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 max-w-5xl mx-auto">
+            <h1 class="text-2xl font-bold">🍳 Kitchen Display System</h1>
+        </header>
+        <main class="max-w-5xl mx-auto"><div id="kitchenOrdersContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6"><p class="text-gray-400 italic">Loading...</p></div></main>
+    </div>
+
+    <script>
+        // --- DATABASE INIT (Using LocalStorage) ---
+        const defaultMenu = [
+            {
+                categoryEn: "Salads & Veggies", categoryAr: "سلطة وخضار",
+                items: [
+                    { id: "tabbouleh", nameEn: "Tabbouleh", nameAr: "تبولة", price: 10, descEn: "Chopped parsley, tomatoes, bulgur", descAr: "بقدونس مفروم، بندورة، برغل" },
+                    { id: "fattouch", nameEn: "Fattouch", nameAr: "فتوش", price: 10, descEn: "Green salad with toasted bread", descAr: "سلطة مع خبز محمص" }
+                ]
+            },
+            {
+                categoryEn: "Cold Mezza", categoryAr: "مازة باردة",
+                items: [
+                    { id: "hummus", nameEn: "Hummus", nameAr: "حمص", price: 8.5, descEn: "Chickpea puree with tahini", descAr: "حمص بطحينة" }
+                ]
+            }
+        ];
+
+        if (!localStorage.getItem('db_menu')) localStorage.setItem('db_menu', JSON.stringify(defaultMenu));
+        if (!localStorage.getItem('db_tables')) {
+            let initialTables = { 1: {isOpen:false, status:'Valid'}, 2: {isOpen:false, status:'Valid'}, 3: {isOpen:false, status:'Valid'}, 4: {isOpen:false, status:'Valid'}, 5: {isOpen:false, status:'Valid'}, 6: {isOpen:false, status:'Valid'} };
+            localStorage.setItem('db_tables', JSON.stringify(initialTables));
+        }
+        if (!localStorage.getItem('db_requests')) localStorage.setItem('db_requests', JSON.stringify({}));
+        if (!localStorage.getItem('db_orders')) localStorage.setItem('db_orders', JSON.stringify([]));
+        if (!localStorage.getItem('db_paid_history')) localStorage.setItem('db_paid_history', JSON.stringify([]));
+
+        function getDB(key) { return JSON.parse(localStorage.getItem('db_' + key)); }
+        function setDB(key, val) { localStorage.setItem('db_' + key, JSON.stringify(val)); }
+
+        // --- VIEW SWITCHING ---
+        function switchView(viewName) {
+            document.querySelectorAll('.app-view').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+            ['customer', 'admin', 'kitchen'].forEach(v => {
+                const btn = document.getElementById('mode-' + v);
+                btn.className = v === viewName ? "bg-orange-500 px-3 py-1 rounded font-bold" : "bg-gray-700 px-3 py-1 rounded font-bold";
+            });
+            if(viewName === 'admin') loadAdminData();
+            if(viewName === 'kitchen') loadKitchenData();
+        }
+
+        // --- CUSTOMER LOGIC ---
+        let currentLang = 'en';
+        let currentTable = localStorage.getItem('restaurant_table_number');
+        let tableIsOpen = false;
+        let isCartOpen = false;
+        let cart = {};
+        let menuCategories = [];
+        let itemLookup = {};
+
+        const i18n = {
+            en: { brandTitle: "KUN LEBNÉNÉ", brandSubtitle: "Capo Batroun • Prices in USD (Includes VAT & Service)[cite: 1]", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀", notifyManager: "Ring Manager Bell 🛎️" },
+            ar: { brandTitle: "كُن لبناني", brandSubtitle: "كابو البترون • الأسعار بالدولار شاملة الخدمة والضريبة[cite: 1]", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "إرسال تنبيه للمدير 🛎️" }
+        };
+
+        window.onload = () => {
+            if (!currentTable) document.getElementById('tableModal').classList.remove('hidden');
+            else document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            loadCustomerMenu();
+            checkTableStatusClient();
+            setInterval(() => {
+                checkTableStatusClient();
+                if(!document.getElementById('view-admin').classList.contains('hidden')) loadAdminData();
+                if(!document.getElementById('view-kitchen').classList.contains('hidden')) loadKitchenData();
+            }, 2000);
+        };
+
+        function loadCustomerMenu() {
+            menuCategories = getDB('menu');
+            itemLookup = {};
+            menuCategories.forEach(cat => cat.items.forEach(item => itemLookup[item.id] = item));
+            renderMenu();
+        }
+
+        function saveTableSelection() {
+            currentTable = document.getElementById('tableSelect').value;
+            localStorage.setItem('restaurant_table_number', currentTable);
+            document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            document.getElementById('tableModal').classList.add('hidden');
+            checkTableStatusClient();
+        }
+
+        function changeTable() { document.getElementById('tableModal').classList.remove('hidden'); }
+
+        function checkTableStatusClient() {
+            if (!currentTable) return;
+            const tables = getDB('tables');
+            tableIsOpen = !!tables[currentTable]?.isOpen;
+            document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen);
+            updateCartUI();
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            const t = i18n[currentLang];
+            document.getElementById('brandTitle').innerText = t.brandTitle;
+            document.getElementById('brandSubtitle').innerText = t.brandSubtitle;
+            document.getElementById('langToggleBtn').innerText = t.langBtnText;
+            document.getElementById('lblViewList').innerText = t.viewList;
+            renderMenu();
+            updateCartUI();
+        }
+
+        function toggleCartDrawer() {
+            isCartOpen = !isCartOpen;
+            document.getElementById('cartDetails').style.display = isCartOpen ? 'block' : 'none';
+            document.getElementById('chevronIcon').style.transform = isCartOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        function addToCart(id) { cart[id] = (cart[id] || 0) + 1; updateCartUI(); renderMenu(); }
+        function changeQty(id, delta) {
+            if (cart[id]) { cart[id] += delta; if (cart[id] <= 0) delete cart[id]; }
+            updateCartUI(); renderMenu();
+        }
+
+        function updateCartUI() {
+            const t = i18n[currentLang];
+            const itemIds = Object.keys(cart);
+            let total = 0, count = 0;
+            const listEl = document.getElementById('cartItemsList');
+
+            if (itemIds.length === 0) {
+                listEl.innerHTML = `<p style="text-align:center; color:#999; margin: 1rem 0; font-size:0.85rem;">${t.emptyCart}</p>`;
+            } else {
+                let html = '';
+                itemIds.forEach(id => {
+                    const item = itemLookup[id];
+                    if (!item) return;
+                    const qty = cart[id];
+                    const subtotal = item.price * qty;
+                    total += subtotal; count += qty;
+                    const title = currentLang === 'ar' ? (item.nameAr || item.nameEn) : item.nameEn;
+                    html += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem;">
+                        <div><strong>${title}</strong></div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button onclick="changeQty('${id}', -1)" style="background:#eee; border:none; width:22px; height:22px; border-radius:50%; font-weight:bold; cursor:pointer;">-</button>
+                            <span>${qty}</span>
+                            <button onclick="changeQty('${id}', 1)" style="background:#eee; border:none; width:22px; height:22px; border-radius:50%; font-weight:bold; cursor:pointer;">+</button>
+                            <span style="font-weight:600; min-width:50px; text-align:right;">$${subtotal.toFixed(2)}</span>
+                        </div></div>`;
+                });
+                listEl.innerHTML = html;
+            }
+            document.getElementById('barTotal').innerText = '$' + total.toFixed(2);
+            document.getElementById('itemCountBadge').innerText = `${count} ${t.items}`;
+            const sendBtn = document.getElementById('sendOrderBtn');
+            sendBtn.disabled = count === 0;
+            sendBtn.innerText = tableIsOpen ? t.sendOrder : t.notifyManager;
+            sendBtn.style.background = tableIsOpen ? 'var(--primary)' : '#f59e0b';
+        }
+
+        function renderMenu() {
+            const container = document.getElementById('menuContainer');
+            const nav = document.getElementById('categoryNav');
+            const t = i18n[currentLang];
+            nav.innerHTML = ''; container.innerHTML = '';
+
+            menuCategories.forEach((sec, idx) => {
+                const catName = currentLang === 'ar' ? sec.categoryAr : sec.categoryEn;
+                const tab = document.createElement('button');
+                tab.innerText = catName;
+                if (idx === 0) tab.classList.add('active');
+                tab.onclick = () => {
+                    document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('sec-' + idx).scrollIntoView({ behavior: 'smooth' });
+                };
+                nav.appendChild(tab);
+
+                const secDiv = document.createElement('div');
+                secDiv.id = 'sec-' + idx;
+                let cardsHtml = '';
+                sec.items.forEach(item => {
+                    const primaryName = currentLang === 'ar' ? item.nameAr : item.nameEn;
+                    const altName = currentLang === 'ar' ? item.nameEn : item.nameAr;
+                    const desc = currentLang === 'ar' ? item.descAr : item.descEn;
+                    const qtyAdded = cart[item.id] || 0;
+                    cardsHtml += `<div class="card"><div class="card-info"><div class="alt-name">${altName}</div>
+                        <h3><span>${primaryName}</span> ${qtyAdded > 0 ? `<span class="qty-badge-red">x${qtyAdded}</span>` : ''}</h3>
+                        <p>${desc || ''}</p></div>
+                        <div class="card-action"><span class="price">$${item.price.toFixed(2)}</span>
+                        <button class="btn-add" onclick="addToCart('${item.id}')">${t.add}</button></div></div>`;
+                });
+                secDiv.innerHTML = `<div class="section-title"><span>${catName}</span></div><div class="grid">${cardsHtml}</div>`;
+                container.appendChild(secDiv);
+            });
+        }
+
+        function sendOrder() {
+            let tables = getDB('tables');
+            if (!tableIsOpen) {
+                let requests = getDB('requests');
+                requests[currentTable] = true;
+                setDB('requests', requests);
+                alert('🔔 Bell rung! Notification sent to the manager to open your table.');
+                return;
+            }
+            let total = 0, orderItems = [];
+            Object.keys(cart).forEach(id => {
+                const item = itemLookup[id];
+                if (!item) return;
+                total += item.price * cart[id];
+                // Initialize checkboxes state for each unit of the item (e.g. 2 checkboxes per qty)
+                orderItems.push({
+                    id,
+                    name: currentLang === 'ar' ? item.nameAr : item.nameEn,
+                    price: item.price,
+                    qty: cart[id],
+                    checks: Array(cart[id] * 2).fill(false)
+                });
+            });
+
+            let orders = getDB('orders');
+            orders.push({
+                orderId: 'ord_' + Date.now(), tableNumber: currentTable, items: orderItems, total,
+                kitchenStatus: 'Received', billStatus: 'Unpaid',
+                date: new Date().toISOString().split('T')[0], timestamp: new Date().toLocaleTimeString()
+            });
+            setDB('orders', orders);
+            tables[currentTable].isOpen = false;
+            setDB('tables', tables);
+            cart = {}; isCartOpen = false;
+            document.getElementById('cartDetails').style.display = 'none';
+            alert('Order sent successfully! Table closed awaiting next activation.');
+            checkTableStatusClient(); renderMenu();
+        }
+
+        // --- ADMIN PANEL LOGIC ---
+        let currentAdminTab = 'tables';
+
+        function switchAdminTab(tabName) {
+            currentAdminTab = tabName;
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('admin-sec-' + tabName).classList.remove('hidden');
+            document.querySelectorAll('[id^="tab-"]').forEach(b => b.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border");
+            document.getElementById('tab-' + tabName).className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow";
+            if(tabName === 'tables') {
+                document.getElementById('tab-tables').classList.remove('animate-pulse', 'bg-red-600');
+            }
+            loadAdminData();
+        }
+
+        function syncTableStatusesDB() {
+            let orders = getDB('orders');
+            let tables = getDB('tables');
+            let activeUnpaid = new Set(orders.filter(o => o.billStatus !== 'Paid').map(o => String(o.tableNumber)));
+            for (let tNum in tables) {
+                if (activeUnpaid.has(tNum)) tables[tNum].status = 'Occupied';
+                else if (tables[tNum].status === 'Occupied') tables[tNum].status = 'Valid';
+            }
+            setDB('tables', tables);
+        }
+
+        function loadAdminData() {
+            syncTableStatusesDB();
+            let tables = getDB('tables');
+            let requests = getDB('requests');
+            let orders = getDB('orders');
+            let menu = getDB('menu');
+
+            let hasPending = Object.values(requests).some(v => v === true);
+            let tablesTab = document.getElementById('tab-tables');
+            if (hasPending && currentAdminTab !== 'tables') {
+                tablesTab.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-red-600 text-white animate-pulse shadow-lg border-2 border-red-300";
+            } else if (currentAdminTab !== 'tables') {
+                tablesTab.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border";
+            }
+
+            document.getElementById('adminTablesGrid').innerHTML = Object.keys(tables).map(k => {
+                let t = tables[k];
+                let isWaiting = requests[k] && !t.isOpen;
+                let statusBg = t.status === 'Occupied' ? 'bg-red-100 border-red-400 text-red-900' : 'bg-emerald-50 border-emerald-200';
+                if(isWaiting) statusBg = 'bg-amber-100 border-amber-400 animate-pulse';
+                return `<div class="border p-4 rounded-xl text-center flex flex-col justify-between ${statusBg}">
+                    <div><div class="flex justify-between items-center mb-2">
+                    <span class="font-bold text-base">Table #${k}</span>
+                    <span class="text-xs px-2 py-0.5 rounded font-bold ${t.status==='Occupied'?'bg-red-500 text-white':'bg-white border'}">${t.status}</span></div>
+                    ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-bold mb-2">🛎️ Ready to Order!</span>' : ''}
+                    <p class="text-xs text-gray-600 mb-3">Ordering: <b>${t.isOpen ? 'OPEN' : 'CLOSED'}</b></p></div>
+                    <button onclick="toggleTableAdmin(${k})" class="w-full py-2 rounded-lg text-xs font-semibold text-white transition ${t.isOpen ? 'bg-rose-600' : 'bg-emerald-600'}">
+                    ${t.isOpen ? 'Close Ordering 🔒' : 'Open Ordering 🔓'}</button></div>`;
+            }).join('');
+
+            let menuHtml = '';
+            menu.forEach(cat => {
+                menuHtml += `<h3 class="font-bold text-indigo-600 mt-4 mb-2 text-sm uppercase tracking-wide border-b pb-1">${cat.categoryEn}</h3>`;
+                cat.items.forEach(m => {
+                    menuHtml += `<div class="flex justify-between items-center border-b py-2 text-sm">
+                        <span><b>${m.nameEn}</b> — <span class="text-indigo-600 font-bold">$${m.price.toFixed(2)}</span></span>
+                        <button onclick="deleteMenuAdmin('${m.id}')" class="bg-rose-500 text-white px-3 py-1 rounded text-xs font-semibold">Delete</button></div>`;
+                });
+            });
+            document.getElementById('adminMenuList').innerHTML = menuHtml || '<p class="text-gray-400 text-xs">No items found.</p>';
+
+            document.getElementById('adminBillsList').innerHTML = orders.length === 0 ? '<p class="text-gray-400 italic text-sm">No active bills.</p>' : orders.map(o => `
+                <div class="flex justify-between items-center border-b pb-3 text-sm">
+                    <div><b>Table #${o.tableNumber}</b> - Total: $${o.total.toFixed(2)} <span class="text-xs ml-2 px-2 py-0.5 rounded bg-gray-200">Kitchen: ${o.kitchenStatus}</span></div>
+                    <div class="flex items-center gap-3">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${o.billStatus==='Paid'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${o.billStatus}</span>
+                        <button onclick="toggleBillAdmin('${o.orderId}')" class="bg-gray-800 text-white px-3 py-1 rounded text-xs font-semibold">Toggle Paid</button>
+                        ${o.billStatus === 'Paid' ? `<button onclick="clearBillAdmin('${o.orderId}')" class="bg-rose-600 text-white px-3 py-1 rounded text-xs font-semibold">Clear ✓</button>` : ''}
+                    </div></div>`).join('');
+
+            let paidHistory = getDB('paid_history');
+            let allPaid = [...paidHistory, ...orders.filter(o => o.billStatus === 'Paid')];
+            let revReport = {};
+            allPaid.forEach(o => {
+                let d = o.date || new Date().toISOString().split('T')[0];
+                let tbl = o.tableNumber;
+                if(!revReport[d]) revReport[d] = {};
+                if(!revReport[d][tbl]) revReport[d][tbl] = 0;
+                revReport[d][tbl] += o.total;
+            });
+            let revDates = Object.keys(revReport);
+            let revContainer = document.getElementById('adminRevenueContainer');
+            if(revDates.length === 0) {
+                revContainer.innerHTML = `<p class="text-gray-400 italic text-sm">No settled revenue data available yet.</p>`;
+            } else {
+                revContainer.innerHTML = revDates.map(d => {
+                    let tblRevs = revReport[d];
+                    let dailyTotal = Object.values(tblRevs).reduce((a,b)=>a+b,0);
+                    let rows = Object.keys(tblRevs).map(tbl => `<div class="flex justify-between border-b py-1.5 text-sm"><span class="font-medium">Table #${tbl}</span><span class="font-bold text-emerald-600">$${tblRevs[tbl].toFixed(2)}</span></div>`).join('');
+                    return `<div class="border rounded-xl p-4 bg-gray-50"><div class="flex justify-between items-center mb-3 border-b pb-2"><h3 class="font-bold">📅 Date: ${d}</h3><span class="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold">Total: $${dailyTotal.toFixed(2)}</span></div><div class="space-y-1">${rows}</div></div>`;
+                }).join('');
+            }
+        }
+
+        function toggleTableAdmin(num) {
+            let tables = getDB('tables');
+            let requests = getDB('requests');
+            if(tables[num]) {
+                tables[num].isOpen = !tables[num].isOpen;
+                if(tables[num].isOpen) delete requests[num];
+            }
+            setDB('tables', tables);
+            setDB('requests', requests);
+            loadAdminData();
+        }
+
+        function addMenu(e) {
+            e.preventDefault();
+            let name = document.getElementById('mName').value;
+            let price = parseFloat(document.getElementById('mPrice').value);
+            let catName = document.getElementById('mCat').value;
+            let menu = getDB('menu');
+            let newItem = { id: 'item_' + Date.now(), nameEn: name, nameAr: name, price: price, descEn: '', descAr: '' };
+            let cat = menu.find(c => c.categoryEn === catName);
+            if(!cat) { cat = { categoryEn: catName, categoryAr: catName, items: [] }; menu.push(cat); }
+            cat.items.push(newItem);
+            setDB('menu', menu);
+            document.getElementById('mName').value = ''; document.getElementById('mPrice').value = '';
+            loadAdminData(); loadCustomerMenu();
+        }
+
+        function deleteMenuAdmin(id) {
+            let menu = getDB('menu');
+            menu.forEach(cat => cat.items = cat.items.filter(i => i.id !== id));
+            setDB('menu', menu);
+            loadAdminData(); loadCustomerMenu();
+        }
+
+        function toggleBillAdmin(id) {
+            let orders = getDB('orders');
+            let ord = orders.find(o => o.orderId === id);
+            if(ord) {
+                ord.billStatus = ord.billStatus === 'Paid' ? 'Unpaid' : 'Paid';
+                if(ord.billStatus === 'Paid') {
+                    let history = getDB('paid_history');
+                    history.push({...ord});
+                    setDB('paid_history', history);
+                }
+            }
+            setDB('orders', orders);
+            loadAdminData();
+        }
+
+        function clearBillAdmin(id) {
+            if(confirm('Settle and archive this bill?')) {
+                let orders = getDB('orders');
+                orders = orders.filter(o => o.orderId !== id);
+                setDB('orders', orders);
+                loadAdminData();
+            }
+        }
+
+        // --- KITCHEN DISPLAY LOGIC ---
+        function loadKitchenData() {
+            let orders = getDB('orders').filter(o => o.kitchenStatus !== 'Sent to Table');
+            let container = document.getElementById('kitchenOrdersContainer');
+            if(orders.length === 0) { container.innerHTML = '<p class="text-gray-400 italic">No active kitchen orders.</p>'; return; }
+
+            container.innerHTML = orders.map(o => `
+                <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between mb-3 border-b border-gray-700 pb-2">
+                            <span class="text-xl font-bold text-amber-400">Table #${o.tableNumber}</span>
+                            <span class="text-xs px-2 py-1 rounded font-semibold bg-blue-500/20 text-blue-300">${o.kitchenStatus}</span>
+                        </div>
+
+                        <!-- Top Header for Cooking Finished checkboxes -->
+                        <div class="flex justify-between items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-700/50 pb-1">
+                            <span>Item Details</span>
+                            <span class="text-orange-400">Cooking Finished</span>
+                        </div>
+
+                        <ul class="space-y-2 mb-4 text-sm">
+                            ${o.items.map((item, itemIdx) => {
+                                // Ensure checks array exists for backwards compatibility
+                                if(!item.checks) item.checks = [false, false];
+                                return `
+                                    <li class="flex justify-between items-center bg-gray-700/40 p-2 rounded-lg">
+                                        <span class="font-medium">${item.qty}x${item.name}</span>
+                                        <div class="flex items-center gap-3">
+                                            <label class="flex items-center gap-1 text-xs text-gray-300 cursor-pointer">
+                                                <input type="checkbox" ${item.checks[0] ? 'checked' : ''} onchange="toggleItemCheck('${o.orderId}',${itemIdx}, 0)" class="w-4 h-4 accent-orange-500 rounded">
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center gap-1 text-xs text-gray-300 cursor-pointer">
+                                                <input type="checkbox" ${item.checks[1] ? 'checked' : ''} onchange="toggleItemCheck('${o.orderId}',${itemIdx}, 1)" class="w-4 h-4 accent-orange-500 rounded">
+                                                <span>2</span>
+                                            </label>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                    </div>
+                    <div class="space-y-2 pt-3 border-t border-gray-700">
+                        <div class="grid grid-cols-3 gap-1 text-xs font-semibold">
+                            <button onclick="setKitchenStatus('${o.orderId}', 'Received')" class="py-1.5 rounded ${o.kitchenStatus==='Received'?'bg-blue-600':'bg-gray-700'}">Recv</button>
+                            <button onclick="setKitchenStatus('${o.orderId}', 'Cooking')" class="py-1.5 rounded ${o.kitchenStatus==='Cooking'?'bg-amber-600':'bg-gray-700'}">Cook</button>
+                            <button onclick="setKitchenStatus('${o.orderId}', 'Ready')" class="py-1.5 rounded ${o.kitchenStatus==='Ready'?'bg-emerald-600':'bg-gray-700'}">Ready</button>
+                        </div>
+                        <button onclick="setKitchenStatus('${o.orderId}', 'Sent to Table')" class="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded-xl text-xs font-semibold transition">Sent to Table ➔</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        function toggleItemCheck(orderId, itemIndex, checkIndex) {
+            let orders = getDB('orders');
+            let ord = orders.find(o => o.orderId === orderId);
+            if (ord && ord.items[itemIndex]) {
+                if (!ord.items[itemIndex].checks) ord.items[itemIndex].checks = [false, false];
+                ord.items[itemIndex].checks[checkIndex] = !ord.items[itemIndex].checks[checkIndex];
+                setDB('orders', orders);
+            }
+        }
+
+        function setKitchenStatus(id, status) {
+            let orders = getDB('orders');
+            let ord = orders.find(o => o.orderId === id);
+            if(ord) ord.kitchenStatus = status;
+            setDB('orders', orders);
+            loadKitchenData();
+        }
+    </script>
+</body>
+</html>

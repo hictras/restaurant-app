@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Kitchen Display System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-6">
+    <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold flex items-center gap-2">🍳 Kitchen Display System <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
+        <a href="admin.html" class="text-xs bg-indigo-600 px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-700 transition">Admin Panel 🍔</a>
+    </header>
+    <main class="max-w-6xl mx-auto"><div id="ordersContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6"><p class="text-gray-400 italic">Waiting for active orders...</p></div></main>
+
+    <script>
+        const socket = io();
+        let currentOrders = [];
+
+        socket.on('connect', () => {
+            document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block";
+        });
+        socket.on('disconnect', () => {
+            document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-red-500 inline-block";
+        });
+
+        socket.on('state_update', (data) => {
+            currentOrders = data.orders.filter(o => o.kitchenStatus !== 'Sent to Table');
+            renderKitchenOrders();
+        });
+
+        function renderKitchenOrders() {
+            const container = document.getElementById('ordersContainer');
+            if (currentOrders.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 italic">No active kitchen orders.</p>';
+                return;
+            }
+            container.innerHTML = currentOrders.map(o => `
+                <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between mb-3 border-b border-gray-700 pb-2 items-center">
+                            <span class="text-xl font-bold text-amber-400">Table #${o.tableNumber}</span>
+                            <span class="text-xs px-2.5 py-1 rounded font-semibold bg-blue-500/20 text-blue-300">${o.kitchenStatus}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-700/50 pb-1">
+                            <span>Item Details</span>
+                            <span class="text-orange-400">Cooking Finished</span>
+                        </div>
+
+                        <ul class="space-y-2 mb-4 text-sm">
+                            ${o.items.map((item, itemIdx) => {
+                                if(!item.checks) item.checks = [false, false];
+                                return `
+                                    <li class="flex justify-between items-center bg-gray-700/40 p-2.5 rounded-lg">
+                                        <span class="font-medium">${item.qty}x${item.name}</span>
+                                        <div class="flex items-center gap-4">
+                                            <label class="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
+                                                <input type="checkbox" ${item.checks[0] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 0})" class="w-4 h-4 accent-orange-500 rounded">
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
+                                                <input type="checkbox" ${item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 1})" class="w-4 h-4 accent-orange-500 rounded">
+                                                <span>2</span>
+                                            </label>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                    </div>
+                    <div class="space-y-2 pt-3 border-t border-gray-700">
+                        <div class="grid grid-cols-3 gap-1 text-xs font-semibold">
+                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Received'})" class="py-2 rounded transition ${o.kitchenStatus==='Received'?'bg-blue-600':'bg-gray-700 hover:bg-gray-600'}">Recv</button>
+                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Cooking'})" class="py-2 rounded transition ${o.kitchenStatus==='Cooking'?'bg-amber-600':'bg-gray-700 hover:bg-gray-600'}">Cook</button>
+                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Ready'})" class="py-2 rounded transition ${o.kitchenStatus==='Ready'?'bg-emerald-600':'bg-gray-700 hover:bg-gray-600'}">Ready</button>
+                        </div>
+                        <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Sent to Table'})" class="w-full bg-purple-600 hover:bg-purple-700 py-2.5 rounded-xl text-xs font-semibold transition shadow">Sent to Table ➔</button>
+                    </div>
+                </div>`).join('');
+        }
+    </script>
+</body>
+</html>
