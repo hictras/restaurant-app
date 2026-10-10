@@ -55,6 +55,7 @@
 </head>
 <body>
 
+    <!-- TABLE SELECTION MODAL -->
     <div id="tableModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
             <h2 class="text-xl font-bold mb-2 text-gray-800">Select Your Table</h2>
@@ -63,6 +64,16 @@
                 <option value="4">Table #4</option><option value="5">Table #5</option><option value="6">Table #6</option>
             </select>
             <button onclick="saveTableSelection()" class="w-full bg-[#f28538] text-white py-3 rounded-xl font-semibold">Confirm Table 🚀</button>
+        </div>
+    </div>
+
+    <!-- CUSTOM NOTIFICATION MODAL -->
+    <div id="customModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
+            <div id="modalIcon" class="text-3xl mb-2">🔔</div>
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-800 mb-1">Notification</h3>
+            <p id="modalMessage" class="text-sm text-gray-600 mb-5">Message goes here...</p>
+            <button onclick="closeCustomModal()" class="w-full bg-[#f28538] text-white py-2.5 rounded-xl font-semibold text-sm">OK</button>
         </div>
     </div>
 
@@ -172,6 +183,17 @@
             await loadMenuFromServer();
         };
 
+        function showModal(title, message, icon = '🔔') {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('modalIcon').innerText = icon;
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+
+        function closeCustomModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
         socket.on('state_update', (data) => {
             if (currentTable) {
                 if (data.tables && data.tables[currentTable]) {
@@ -179,8 +201,13 @@
                     tableIsOpen = !!data.tables[currentTable].isOpen;
                     
                     if (!wasTableOpen && tableIsOpen) {
-                        activationSound.play().catch(e => console.log('Customer audio autoplay blocked.'));
+                        activationSound.play().then(() => {
+                            activationSound.pause();
+                            activationSound.currentTime = 0;
+                        }).catch(e => console.log('Audio autoplay blocked:', e));
+                        
                         isWaitingForActivation = false;
+                        showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
                     }
 
                     document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
@@ -249,6 +276,12 @@
             localStorage.setItem('restaurant_table_number', currentTable);
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             document.getElementById('tableModal').classList.add('hidden');
+
+            // Unlock audio on user interaction
+            activationSound.play().then(() => {
+                activationSound.pause();
+                activationSound.currentTime = 0;
+            }).catch(e => console.log('Audio unlock error:', e));
         }
 
         function changeTable() { document.getElementById('tableModal').classList.remove('hidden'); }
@@ -399,7 +432,7 @@
                 socket.emit('table_request', { tableNumber: currentTable });
                 isWaitingForActivation = true;
                 updateCartUI();
-                alert('🔔 Bell rung! Notification sent to the manager to open your table.');
+                showModal('Bell Rung! 🛎️', 'Notification sent to the manager to open your table.', '🛎️');
                 return;
             }
 
@@ -418,10 +451,10 @@
                     isWaitingForActivation = false;
                     document.getElementById('cartDetails').style.display = 'none';
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
-                    alert('Order sent successfully!');
+                    showModal('Success!', 'Order sent successfully to the kitchen!', '🚀');
                     updateCartUI(); renderMenu();
                 } else {
-                    alert(res.message);
+                    showModal('Notice', res.message, '⚠️');
                 }
             });
         }
