@@ -306,7 +306,7 @@
             document.getElementById('customModal').classList.add('hidden');
         }
 
-        socket.on('state_update', (data) => {
+socket.on('state_update', (data) => {
             if (currentTable) {
                 if (data.tables && data.tables[currentTable]) {
                     const wasTableOpen = tableIsOpen;
@@ -320,7 +320,6 @@
                         
                         isWaitingForActivation = false;
                         showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
-                        triggerSystemNotification('Table Activated! 🎉', 'Your table is now open for ordering.');
                     }
 
                     document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
@@ -355,13 +354,22 @@
                 if (activeTableOrders.length > 0) {
                     banner.classList.remove('hidden');
                     document.getElementById('orderCountBadge').innerText = `${activeTableOrders.length} active`;
-                    const currentLatestStatus = activeTableOrders[activeTableOrders.length - 1].kitchenStatus;
+                    
+                    const latestOrder = activeTableOrders[activeTableOrders.length - 1];
+                    const currentLatestStatus = latestOrder.kitchenStatus;
                     document.getElementById('latestStatusBadge').innerText = currentLatestStatus;
                     
-                    if (currentLatestStatus !== previousLatestStatus && previousLatestStatus !== '') {
-                        triggerSystemNotification('Order Status Update 📦', `Your order status is now: ${currentLatestStatus}`);
+                    // UNIQUE STORAGE KEY PER ORDER ID TO PREVENT REFRESH SPAM
+                    const statusKey = `notified_status_${latestOrder.orderId}`;
+                    const lastNotifiedStatus = sessionStorage.getItem(statusKey);
+
+                    if (currentLatestStatus !== lastNotifiedStatus) {
+                        sessionStorage.setItem(statusKey, currentLatestStatus);
+                        // Only trigger notification if it's a genuine transition and not initial load
+                        if (lastNotifiedStatus !== null) {
+                            triggerSystemNotification('Order Status Update 📦', `Your order status is now: ${currentLatestStatus}`);
+                        }
                     }
-                    previousLatestStatus = currentLatestStatus;
 
                     let ordersHtml = activeTableOrders.map((ord, idx) => {
                         let itemsStr = ord.items.map(i => `${i.qty}x ${i.name}`).join(', ');
