@@ -1,11 +1,11 @@
 {
-    "name": "restaurant-app",
-    "version": "2.1.0",
-    "description": "Advanced Real-Time Restaurant Management System",
-    "main": "server.js",
-    "dependencies": {
-        "express": "^4.19.2",
-        "socket.io": "^4.7.5",
-        "uuid": "^9.0.1"
-    }
+  "name": "restaurant-app",
+  "version": "2.1.0",
+  "description": "Advanced Real-Time Restaurant Management System",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "uuid": "^9.0.1"
+  }
 }

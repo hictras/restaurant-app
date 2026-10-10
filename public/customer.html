@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kun Lebnéné - Capo Batroun | Complete Menu</title>
+    <title>T By Talal | Complete Menu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -37,7 +37,7 @@
         .menu-section { scroll-margin-top: 140px; }
 
         .section-title { font-size: 1.25rem; margin: 1.8rem 0 0.8rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: baseline; }
-
+        
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.9rem; }
         .card { background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border); padding: 0.9rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .card-info h3 { font-size: 0.95rem; color: var(--text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -69,8 +69,8 @@
     <div class="sticky-top-wrapper">
         <header>
             <div class="header-titles">
-                <h1 id="brandTitle">KUN LEBNÉNÉ</h1>
-                <p id="brandSubtitle">Capo Batroun • Prices in USD (Includes VAT & Service)[cite: 1]</p>
+                <h1 id="brandTitle">T BY TALAL</h1>
+                <p id="brandSubtitle">Prices in USD (Includes VAT & Service)</p>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
                 <button class="table-btn" id="tableBtnDisplay" onclick="changeTable()">Table --</button>
@@ -83,7 +83,6 @@
     <!-- COLLAPSIBLE ORDER STATUS TRACKER BANNER -->
     <div id="orderStatusBanner" class="max-w-[960px] mx-auto mt-4 px-4 hidden">
         <div class="bg-indigo-900 text-white rounded-2xl shadow-md overflow-hidden transition-all">
-            <!-- Compact Badge Header (Always visible when orders exist, click to toggle) -->
             <div onclick="toggleStatusDrawer()" class="p-3.5 flex justify-between items-center cursor-pointer bg-indigo-950/60 hover:bg-indigo-950 transition">
                 <div class="flex items-center gap-2.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
@@ -95,7 +94,6 @@
                     <span id="statusChevron" class="text-xs font-bold transition-transform">▼</span>
                 </div>
             </div>
-            <!-- Expanded Full Order List (Hidden by default) -->
             <div id="statusDrawerDetails" class="p-4 border-t border-indigo-800 space-y-2 hidden">
                 <div id="statusTrackerItems" class="space-y-2"></div>
             </div>
@@ -106,7 +104,7 @@
 
     <div class="cart-bar">
         <div id="activationWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium">
-            ⏳ Table is locked. Clicking send will ring the manager's bell to activate your table.
+            ⏳ Table is locked. Click below to notify the manager for activation.
         </div>
         <div onclick="toggleCartDrawer()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -132,15 +130,40 @@
         let currentLang = 'en';
         let currentTable = localStorage.getItem('restaurant_table_number');
         let tableIsOpen = false;
+        let isWaitingForActivation = false;
         let isCartOpen = false;
         let isStatusDrawerOpen = false;
         let cart = {};
         let menuCategories = [];
         let itemLookup = {};
 
+        const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
+
         const i18n = {
-            en: { brandTitle: "KUN LEBNÉNÉ", brandSubtitle: "Capo Batroun • Prices in USD (Includes VAT & Service)[cite: 1]", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀", notifyManager: "Ring Manager Bell & Request Table Activation 🛎️" },
-            ar: { brandTitle: "كُن لبناني", brandSubtitle: "كابو البترون • الأسعار بالدولار شاملة الخدمة والضريبة[cite: 1]", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "إرسال تنبيه للمدير لتفعيل الطاولة 🛎️" }
+            en: { 
+                brandTitle: "T BY TALAL", 
+                brandSubtitle: "Prices in USD (Includes VAT & Service)", 
+                langBtnText: "عربي", 
+                viewList: "🛒 View Order List", 
+                items: "items", 
+                add: "+ Add", 
+                emptyCart: "Your list is empty.", 
+                sendOrder: "Send Order 🚀", 
+                notifyManager: "Ring Manager Bell & Request Table Activation 🛎️",
+                waitingActivation: "⏳ Waiting for Manager Activation..." 
+            },
+            ar: { 
+                brandTitle: "T باي طلال", 
+                brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", 
+                langBtnText: "English", 
+                viewList: "🛒 عرض تفاصيل الطلب", 
+                items: "أصناف", 
+                add: "+ إضافة", 
+                emptyCart: "سلة الطلبات فارغة.", 
+                sendOrder: "إرسال الطلب 🚀", 
+                notifyManager: "إرسال تنبيه للمدير لتفعيل الطاولة 🛎️",
+                waitingActivation: "⏳ في انتظار تفعيل الطاولة من المدير..." 
+            }
         };
 
         window.onload = async () => {
@@ -152,26 +175,38 @@
         socket.on('state_update', (data) => {
             if (currentTable) {
                 if (data.tables && data.tables[currentTable]) {
+                    const wasTableOpen = tableIsOpen;
                     tableIsOpen = !!data.tables[currentTable].isOpen;
-                    document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen);
+                    
+                    if (!wasTableOpen && tableIsOpen) {
+                        activationSound.play().catch(e => console.log('Customer audio autoplay blocked.'));
+                        isWaitingForActivation = false;
+                    }
+
+                    document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
+                    updateCartUI();
+                }
+
+                if (data.tableRequests && data.tableRequests[currentTable]) {
+                    isWaitingForActivation = true;
                     updateCartUI();
                 }
 
                 const tableOrders = data.orders.filter(o => String(o.tableNumber) === String(currentTable) && o.kitchenStatus !== 'Sent to Table');
                 const banner = document.getElementById('orderStatusBanner');
                 const trackerContainer = document.getElementById('statusTrackerItems');
-
+                
                 if (tableOrders.length > 0) {
                     banner.classList.remove('hidden');
                     document.getElementById('orderCountBadge').innerText = `${tableOrders.length} active`;
                     document.getElementById('latestStatusBadge').innerText = tableOrders[tableOrders.length - 1].kitchenStatus;
-
+                    
                     let ordersHtml = tableOrders.map((ord, idx) => {
                         let itemsStr = ord.items.map(i => `${i.qty}x ${i.name}`).join(', ');
                         return `
                             <div class="flex justify-between items-center bg-indigo-800/60 p-2.5 rounded-lg text-xs">
                                 <div>
-                                    <span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span>
+                                    <span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span> 
                                     <span class="text-indigo-100">${itemsStr}</span>
                                 </div>
                                 <span class="bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full text-[10px]">${ord.kitchenStatus}</span>
@@ -293,8 +328,20 @@
 
             const sendBtn = document.getElementById('sendOrderBtn');
             sendBtn.disabled = count === 0;
-            sendBtn.innerText = tableIsOpen ? t.sendOrder : t.notifyManager;
-            sendBtn.style.background = tableIsOpen ? 'var(--primary)' : '#f59e0b';
+
+            if (tableIsOpen) {
+                sendBtn.innerText = t.sendOrder;
+                sendBtn.style.background = 'var(--primary)';
+                sendBtn.style.cursor = 'pointer';
+            } else if (isWaitingForActivation) {
+                sendBtn.innerText = t.waitingActivation;
+                sendBtn.style.background = '#64748b';
+                sendBtn.style.cursor = 'not-allowed';
+            } else {
+                sendBtn.innerText = t.notifyManager;
+                sendBtn.style.background = '#f59e0b';
+                sendBtn.style.cursor = 'pointer';
+            }
         }
 
         function renderMenu() {
@@ -346,8 +393,12 @@
         }
 
         function sendOrder() {
+            if (isWaitingForActivation) return;
+
             if (!tableIsOpen) {
                 socket.emit('table_request', { tableNumber: currentTable });
+                isWaitingForActivation = true;
+                updateCartUI();
                 alert('🔔 Bell rung! Notification sent to the manager to open your table.');
                 return;
             }
@@ -364,6 +415,7 @@
             socket.emit('place_order', { tableNumber: currentTable, items: orderItems, total }, (res) => {
                 if (res.success) {
                     cart = {}; isCartOpen = false;
+                    isWaitingForActivation = false;
                     document.getElementById('cartDetails').style.display = 'none';
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
                     alert('Order sent successfully!');

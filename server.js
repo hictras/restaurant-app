@@ -13,6 +13,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Root route to serve customer page automatically
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'customer.html'));
+});
+
 // Persistent storage file paths
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
@@ -199,6 +204,7 @@ app.get('/api/revenue', (req, res) => {
     res.json(revenueReport);
 });
 
-server.listen(3000, () => {
-    console.log('🚀 Advanced Restaurant Server running at http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`🚀 Advanced Restaurant Server running on port ${PORT}`);
 });
