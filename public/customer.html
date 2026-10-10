@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>T By Talal | Complete Menu</title>
+    <!-- PWA Manifest & Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="T By Talal">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -34,7 +40,7 @@
         .nav-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
         .container { max-width: 960px; margin: 1rem auto; padding: 0 1rem; }
-        .menu-section { scroll-margin-top: 140px; }
+        .menu-section { scroll-margin-top: 180px; }
 
         .section-title { font-size: 1.25rem; margin: 1.8rem 0 0.8rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: baseline; }
         
@@ -55,7 +61,7 @@
 </head>
 <body>
 
-    <!-- TABLE SELECTION MODAL -->
+    <!-- TABLE SELECTION MODAL (Fallback if no URL param is present) -->
     <div id="tableModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
             <h2 class="text-xl font-bold mb-2 text-gray-800">Select Your Table</h2>
@@ -77,6 +83,29 @@
         </div>
     </div>
 
+    <!-- INSTALL PWA BANNER -->
+    <div id="installBanner" class="fixed bottom-20 left-4 right-4 bg-gray-900 text-white p-4 rounded-2xl shadow-2xl z-50 flex items-center justify-between hidden max-w-[960px] mx-auto border border-gray-700">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl">📱</span>
+            <div>
+                <h4 class="font-bold text-sm">Install T By Talal App</h4>
+                <p class="text-xs text-gray-300">Add to home screen for fast ordering!</p>
+            </div>
+        </div>
+        <button onclick="showInstallInstructions()" class="bg-[#f28538] text-white text-xs px-4 py-2 rounded-xl font-bold">Install</button>
+    </div>
+
+    <!-- INSTALL GUIDE MODAL -->
+    <div id="installModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center text-gray-800">
+            <h3 class="text-lg font-bold mb-2">Install App on Phone</h3>
+            <p class="text-xs text-gray-600 mb-4" id="installGuideText">Follow the steps below:</p>
+            <div id="installSteps" class="text-left text-xs bg-gray-50 p-3 rounded-xl mb-4 space-y-2 border"></div>
+            <button onclick="document.getElementById('installModal').classList.add('hidden')" class="w-full bg-[#f28538] text-white py-2 rounded-xl font-bold text-sm">Got it!</button>
+        </div>
+    </div>
+
+    <!-- STICKY TOP WRAPPER (Header + Sticky Order Status Banner + Category Nav) -->
     <div class="sticky-top-wrapper">
         <header>
             <div class="header-titles">
@@ -89,27 +118,28 @@
                 <button class="lang-btn" id="langToggleBtn" onclick="toggleLanguage()">عربي</button>
             </div>
         </header>
-        <div class="nav-tabs" id="categoryNav"></div>
-    </div>
 
-    <!-- COLLAPSIBLE ORDER STATUS TRACKER BANNER -->
-    <div id="orderStatusBanner" class="max-w-[960px] mx-auto mt-4 px-4 hidden">
-        <div class="bg-indigo-900 text-white rounded-2xl shadow-md overflow-hidden transition-all">
-            <div onclick="toggleStatusDrawer()" class="p-3.5 flex justify-between items-center cursor-pointer bg-indigo-950/60 hover:bg-indigo-950 transition">
-                <div class="flex items-center gap-2.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    <span class="font-bold text-xs tracking-wide">📦 Order Status</span>
-                    <span id="orderCountBadge" class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">0 active</span>
+        <!-- STICKY ORDER STATUS TRACKER BANNER (Pinned directly under header) -->
+        <div id="orderStatusBanner" class="max-w-[960px] mx-auto px-4 py-2 bg-white border-b border-gray-100 hidden">
+            <div class="bg-indigo-900 text-white rounded-xl shadow-md overflow-hidden transition-all">
+                <div onclick="toggleStatusDrawer()" class="p-3 flex justify-between items-center cursor-pointer bg-indigo-950/60 hover:bg-indigo-950 transition">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span class="font-bold text-xs tracking-wide">📦 Order Status</span>
+                        <span id="orderCountBadge" class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">0 active</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="latestStatusBadge" class="text-xs bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full">Received</span>
+                        <span id="statusChevron" class="text-xs font-bold transition-transform">▼</span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span id="latestStatusBadge" class="text-xs bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full">Received</span>
-                    <span id="statusChevron" class="text-xs font-bold transition-transform">▼</span>
+                <div id="statusDrawerDetails" class="p-3 border-t border-indigo-800 space-y-2 hidden">
+                    <div id="statusTrackerItems" class="space-y-2"></div>
                 </div>
-            </div>
-            <div id="statusDrawerDetails" class="p-4 border-t border-indigo-800 space-y-2 hidden">
-                <div id="statusTrackerItems" class="space-y-2"></div>
             </div>
         </div>
+
+        <div class="nav-tabs" id="categoryNav"></div>
     </div>
 
     <div class="container" id="menuContainer"></div>
@@ -140,7 +170,7 @@
     <script>
         const socket = io();
         let currentLang = 'en';
-        let currentTable = localStorage.getItem('restaurant_table_number');
+        let currentTable = null;
         let tableIsOpen = false;
         let isWaitingForActivation = false;
         let isCartOpen = false;
@@ -150,6 +180,7 @@
         let itemLookup = {};
         let previousLatestStatus = '';
         let sentToTableNotifiedIds = new Set();
+        let deferredPrompt;
 
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
@@ -181,8 +212,30 @@
         };
 
         window.onload = async () => {
-            if (!currentTable) document.getElementById('tableModal').classList.remove('hidden');
-            else document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            // Parse URL parameters for table number (e.g. ?tbl1, ?tbl=1, or ?table=1)
+            const urlParams = new URLSearchParams(window.location.search);
+            let extractedTable = urlParams.get('tbl') || urlParams.get('table');
+            
+            if (!extractedTable) {
+                // Check if any query like ?tbl1 exists without '='
+                const searchStr = window.location.search.replace('?', '');
+                if (searchStr.startsWith('tbl')) {
+                    extractedTable = searchStr.replace('tbl', '');
+                }
+            }
+
+            if (extractedTable) {
+                currentTable = extractedTable;
+                localStorage.setItem('restaurant_table_number', currentTable);
+            } else {
+                currentTable = localStorage.getItem('restaurant_table_number');
+            }
+
+            if (!currentTable) {
+                document.getElementById('tableModal').classList.remove('hidden');
+            } else {
+                document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            }
             
             if ('Notification' in window && Notification.permission !== 'granted') {
                 Notification.requestPermission();
@@ -190,6 +243,43 @@
 
             await loadMenuFromServer();
         };
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBanner').classList.remove('hidden');
+        });
+
+        function showInstallInstructions() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const stepsContainer = document.getElementById('installSteps');
+            const guideText = document.getElementById('installGuideText');
+
+            if (isIOS) {
+                guideText.innerText = "For iPhone / Safari:";
+                stepsContainer.innerHTML = `
+                    <p>1. Tap the <b>Share</b> button <span class="text-blue-500 font-bold">⎋</span> at the bottom of Safari.</p>
+                    <p class="mt-2">2. Scroll down and tap <b>"Add to Home Screen" ➕</b>.</p>
+                    <p class="mt-2">3. Tap <b>Add</b> in the top right corner.</p>
+                `;
+            } else if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        document.getElementById('installBanner').classList.add('hidden');
+                    }
+                    deferredPrompt = null;
+                });
+                return;
+            } else {
+                guideText.innerText = "For Android / Chrome:";
+                stepsContainer.innerHTML = `
+                    <p>1. Tap the menu dots <b>(⋮)</b> in the top right of Chrome.</p>
+                    <p class="mt-2">2. Tap <b>"Install app"</b> or <b>"Add to Home screen"</b>.</p>
+                `;
+            }
+            document.getElementById('installModal').classList.remove('hidden');
+        }
 
         function requestNotificationPermission() {
             if ('Notification' in window) {
@@ -244,7 +334,6 @@
 
                 const tableOrders = data.orders.filter(o => String(o.tableNumber) === String(currentTable));
                 
-                // Check for orders marked as 'Sent to Table' by kitchen
                 tableOrders.forEach(ord => {
                     if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
                         sentToTableNotifiedIds.add(ord.orderId);
@@ -277,7 +366,7 @@
                     let ordersHtml = activeTableOrders.map((ord, idx) => {
                         let itemsStr = ord.items.map(i => `${i.qty}x ${i.name}`).join(', ');
                         return `
-                            <div class="flex justify-between items-center bg-indigo-800/60 p-2.5 rounded-lg text-xs">
+                            <div class="flex justify-between items-center bg-indigo-800/60 p-2 rounded-lg text-xs">
                                 <div>
                                     <span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span> 
                                     <span class="text-indigo-100">${itemsStr}</span>
