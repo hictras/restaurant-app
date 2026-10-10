@@ -26,8 +26,8 @@
         header h1 { font-size: 1.4rem; color: var(--primary); letter-spacing: 0.5px; line-height: 1.2; }
         header p { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
 
-        .lang-btn, .table-btn { background: #fff; border: 1.5px solid var(--primary); color: var(--primary); padding: 5px 10px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 0.8rem; white-space: nowrap; transition: all 0.2s ease; }
-        .lang-btn:hover, .table-btn:hover { background: var(--primary); color: #fff; }
+        .lang-btn, .table-btn, .push-btn { background: #fff; border: 1.5px solid var(--primary); color: var(--primary); padding: 5px 10px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 0.8rem; white-space: nowrap; transition: all 0.2s ease; }
+        .lang-btn:hover, .table-btn:hover, .push-btn:hover { background: var(--primary); color: #fff; }
 
         .nav-tabs { display: flex; overflow-x: auto; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); gap: 0.5rem; white-space: nowrap; scrollbar-width: thin; max-width: 960px; margin: 0 auto; }
         .nav-tabs button { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; color: var(--text); transition: all 0.2s; }
@@ -84,6 +84,7 @@
                 <p id="brandSubtitle">Prices in USD (Includes VAT & Service)</p>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
+                <button class="push-btn" onclick="requestNotificationPermission()" title="Enable Notifications">🔔</button>
                 <button class="table-btn" id="tableBtnDisplay" onclick="changeTable()">Table --</button>
                 <button class="lang-btn" id="langToggleBtn" onclick="toggleLanguage()">عربي</button>
             </div>
@@ -147,6 +148,7 @@
         let cart = {};
         let menuCategories = [];
         let itemLookup = {};
+        let previousLatestStatus = '';
 
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
@@ -180,8 +182,27 @@
         window.onload = async () => {
             if (!currentTable) document.getElementById('tableModal').classList.remove('hidden');
             else document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                Notification.requestPermission();
+            }
+
             await loadMenuFromServer();
         };
+
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    showModal('Notifications', permission === 'granted' ? 'Push notifications enabled successfully!' : 'Notification permission was denied.', permission === 'granted' ? '🎉' : '⚠️');
+                });
+            }
+        }
+
+        function triggerSystemNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body: body });
+            }
+        }
 
         function showModal(title, message, icon = '🔔') {
             document.getElementById('modalTitle').innerText = title;
@@ -208,6 +229,7 @@
                         
                         isWaitingForActivation = false;
                         showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
+                        triggerSystemNotification('Table Activated! 🎉', 'Your table is now open for ordering.');
                     }
 
                     document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
@@ -226,8 +248,14 @@
                 if (tableOrders.length > 0) {
                     banner.classList.remove('hidden');
                     document.getElementById('orderCountBadge').innerText = `${tableOrders.length} active`;
-                    document.getElementById('latestStatusBadge').innerText = tableOrders[tableOrders.length - 1].kitchenStatus;
+                    const currentLatestStatus = tableOrders[tableOrders.length - 1].kitchenStatus;
+                    document.getElementById('latestStatusBadge').innerText = currentLatestStatus;
                     
+                    if (currentLatestStatus !== previousLatestStatus && previousLatestStatus !== '') {
+                        triggerSystemNotification('Order Status Update 📦', `Your order status is now: ${currentLatestStatus}`);
+                    }
+                    previousLatestStatus = currentLatestStatus;
+
                     let ordersHtml = tableOrders.map((ord, idx) => {
                         let itemsStr = ord.items.map(i => `${i.qty}x ${i.name}`).join(', ');
                         return `
@@ -277,7 +305,6 @@
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             document.getElementById('tableModal').classList.add('hidden');
 
-            // Unlock audio on user interaction
             activationSound.play().then(() => {
                 activationSound.pause();
                 activationSound.currentTime = 0;
