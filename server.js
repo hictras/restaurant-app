@@ -18,11 +18,13 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'customer.html'));
 });
 
-// Persistent storage file paths
+// Persistent storage directories & file paths
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
-const menuFilePath = path.join(__dirname, 'items.json');
+const restaurantsDir = path.join(__dirname, 'restaurants');
+if (!fs.existsSync(restaurantsDir)) fs.mkdirSync(restaurantsDir);
+
 const tablesFilePath = path.join(dataDir, 'tables.json');
 const requestsFilePath = path.join(dataDir, 'requests.json');
 const ordersFilePath = path.join(dataDir, 'orders.json');
@@ -96,7 +98,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('place_order', ({ tableNumber, items, total }, callback) => {
+    socket.on('place_order', ({ tableNumber, restaurant, items, total }, callback) => {
         const tKey = String(tableNumber);
         if (!tables[tKey] || !tables[tKey].isOpen) {
             return callback({ success: false, message: 'Table is closed by manager.' });
@@ -104,6 +106,7 @@ io.on('connection', (socket) => {
         const newOrder = {
             orderId: uuidv4(),
             tableNumber: tKey,
+            restaurant: restaurant || 'Default',
             items: items.map(i => ({ ...i, checks: [false, false] })),
             total,
             kitchenStatus: 'Received',
@@ -161,8 +164,33 @@ io.on('connection', (socket) => {
     });
 });
 
-app.get('/api/menu', (req, res) => res.json(loadJSON(menuFilePath, [])));
-app.post('/api/menu', (req, res) => {
+// API: Get list of available restaurants from the restaurants folder
+app.get('/api/restaurants', (req, res) => {
+    try {
+        const files = fs.readdirSync(restaurantsDir);
+        const restaurants = files
+            .filter(file => file.endsWith('.json'))
+            .map(file => path.basename(file, '.json'));
+        res.json(restaurants);
+    } catch (e) {
+        res.status(500).json({ error: 'Unable to scan restaurants directory' });
+    }
+});
+
+// API: Get menu for a specific restaurant
+app.get('/api/menu/:restaurantName', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+    res.json(loadJSON(menuFilePath, []));
+});
+
+// API: Add menu item to a specific restaurant
+app.post('/api/menu/:restaurantName', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+
     const { nameEn, nameAr, price, category } = req.body;
     let menuCategories = loadJSON(menuFilePath, []);
     const newItem = {
@@ -179,32 +207,45 @@ app.post('/api/menu', (req, res) => {
     }
     cat.items.push(newItem);
     saveJSON(menuFilePath, menuCategories);
-    io.emit('menu_updated', menuCategories);
+    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
     res.json({ success: true, item: newItem });
 });
-app.delete('/api/menu/:id', (req, res) => {
+
+// API: Delete menu item from a specific restaurant
+app.delete('/api/menu/:restaurantName/:id', (req, res) => {
+    const restaurantName = req.params.restaurantName;
     const id = req.params.id;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+
     let menuCategories = loadJSON(menuFilePath, []);
     menuCategories.forEach(cat => { cat.items = cat.items.filter(i => i.id !== id); });
     saveJSON(menuFilePath, menuCategories);
-    io.emit('menu_updated', menuCategories);
+    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
     res.json({ success: true });
 });
 
+// API: Daily Revenue Report (Grouped by Restaurant -> Date -> Table)
 app.get('/api/revenue', (req, res) => {
     const allPaid = [...paidOrderHistory, ...orders.filter(o => o.billStatus === 'Paid')];
     const revenueReport = {};
+    
     allPaid.forEach(o => {
+        const resto = o.restaurant || 'Default';
         const date = o.date || new Date().toISOString().split('T')[0];
         const tbl = o.tableNumber;
-        if (!revenueReport[date]) revenueReport[date] = {};
-        if (!revenueReport[date][tbl]) revenueReport[date][tbl] = 0;
-        revenueReport[date][tbl] += o.total;
+
+        if (!revenueReport[resto]) revenueReport[resto] = {};
+        if (!revenueReport[resto][date]) revenueReport[resto][date] = {};
+        if (!revenueReport[resto][date][tbl]) revenueReport[resto][date][tbl] = 0;
+        
+        revenueReport[resto][date][tbl] += o.total;
     });
+
     res.json(revenueReport);
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`🚀 Advanced Restaurant Server running on port ${PORT}`);
+    console.log(`🚀 Advanced Multi-Restaurant Server running on port ${PORT}`);
 });

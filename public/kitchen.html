@@ -1,44 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Kitchen Display System - T By Talal</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Display - Restaurant Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        .restaurant-select { appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 9px auto; padding-right: 30px; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-6">
-    <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 max-w-6xl mx-auto">
-        <h1 class="text-2xl font-bold flex items-center gap-2">🍳 Kitchen Display System (T By Talal) <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
-        <div class="flex items-center gap-3">
-            <button onclick="requestNotificationPermission()" class="text-xs bg-amber-500 text-white px-3 py-2 rounded-xl font-semibold hover:bg-amber-600 transition">Enable Push 🔔</button>
-            <a href="admin.html" class="text-xs bg-indigo-600 px-3 py-1.5 rounded-lg font-semibold hover:bg-indigo-700 transition">Admin Panel 🍔</a>
+<body class="bg-slate-900 text-slate-100 p-6 min-h-screen">
+
+    <header class="flex justify-between items-center mb-6 bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700 max-w-7xl mx-auto">
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl font-bold text-amber-400 flex items-center gap-2">👨‍🍳 Kitchen Display Console <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700">
+                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Restaurant:</span>
+                <select id="kitchenRestaurantSelector" class="restaurant-select bg-transparent text-amber-400 font-bold text-sm focus:outline-none cursor-pointer" onchange="switchKitchenRestaurant(this.value)" title="Select Restaurant"></select>
+            </div>
+            <a href="admin.html" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition">← Back to Admin</a>
         </div>
     </header>
-    <main class="max-w-6xl mx-auto"><div id="ordersContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6"><p class="text-gray-400 italic">Waiting for active orders...</p></div></main>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <section class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/80 shadow-md flex flex-col h-[75vh]">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
+                <h2 class="font-bold text-amber-400 flex items-center gap-2">📥 Received</h2>
+                <span id="badge-Received" class="bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+            </div>
+            <div id="col-Received" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+        </section>
+
+        <section class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/80 shadow-md flex flex-col h-[75vh]">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
+                <h2 class="font-bold text-blue-400 flex items-center gap-2">🔥 Preparing</h2>
+                <span id="badge-Preparing" class="bg-blue-500/20 text-blue-300 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+            </div>
+            <div id="col-Preparing" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+        </section>
+
+        <section class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700/80 shadow-md flex flex-col h-[75vh]">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
+                <h2 class="font-bold text-emerald-400 flex items-center gap-2">✅ Ready / Served</h2>
+                <span id="badge-Ready" class="bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+            </div>
+            <div id="col-Ready" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+        </section>
+
+    </main>
 
     <script>
         const socket = io();
-        let currentOrders = [];
-        const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        let previousOrderCount = 0;
+        let globalOrders = [];
+        let currentKitchenRestaurant = '';
+        const kitchenAlertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        let previousOrdersCount = 0;
 
-        window.onload = () => {
-            if ('Notification' in window && Notification.permission !== 'granted') {
-                Notification.requestPermission();
-            }
+        window.onload = async () => {
+            await loadKitchenRestaurantsList();
         };
 
-        function requestNotificationPermission() {
-            if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                    alert(permission === 'granted' ? 'Push notifications enabled!' : 'Notifications denied.');
+        async function loadKitchenRestaurantsList() {
+            try {
+                const res = await fetch('/api/restaurants');
+                const restaurants = await res.json();
+                const selector = document.getElementById('kitchenRestaurantSelector');
+                selector.innerHTML = '';
+
+                restaurants.forEach(resto => {
+                    const option = document.createElement('option');
+                    option.value = resto;
+                    option.textContent = resto;
+                    selector.appendChild(option);
                 });
+
+                if (restaurants.length > 0) {
+                    currentKitchenRestaurant = restaurants[0];
+                    selector.value = currentKitchenRestaurant;
+                    renderKitchenBoard();
+                }
+            } catch (e) {
+                console.error('Failed to load restaurants list', e);
             }
         }
 
-        function triggerSystemNotification(title, body) {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(title, { body: body });
-            }
+        function switchKitchenRestaurant(restaurantName) {
+            currentKitchenRestaurant = restaurantName;
+            renderKitchenBoard();
         }
 
         socket.on('connect', () => {
@@ -49,67 +101,80 @@
         });
 
         socket.on('state_update', (data) => {
-            const activeKitchenOrders = data.orders.filter(o => o.kitchenStatus !== 'Sent to Table');
-            
-            if (activeKitchenOrders.length > previousOrderCount && previousOrderCount !== 0) {
-                alertSound.play().catch(e => console.log('Audio autoplay blocked.'));
-                triggerSystemNotification('New Order Received! 🍳', 'A new table order has arrived in the kitchen.');
+            globalOrders = data.orders || [];
+            if (globalOrders.length > previousOrdersCount && previousOrdersCount !== 0) {
+                kitchenAlertSound.play().catch(e => console.log('Audio autoplay blocked.'));
             }
-            previousOrderCount = activeKitchenOrders.length;
-            
-            currentOrders = activeKitchenOrders;
-            renderKitchenOrders();
+            previousOrdersCount = globalOrders.length;
+            renderKitchenBoard();
         });
 
-        function renderKitchenOrders() {
-            const container = document.getElementById('ordersContainer');
-            if (currentOrders.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 italic">No active kitchen orders.</p>';
-                return;
-            }
-            container.innerHTML = currentOrders.map(o => `
-                <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between mb-3 border-b border-gray-700 pb-2 items-center">
-                            <span class="text-xl font-bold text-amber-400">Table #${o.tableNumber}</span>
-                            <span class="text-xs px-2.5 py-1 rounded font-semibold bg-blue-500/20 text-blue-300">${o.kitchenStatus}</span>
-                        </div>
-                        
-                        <div class="flex justify-between items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-700/50 pb-1">
-                            <span>Item Details</span>
-                            <span class="text-orange-400">Cooking Finished</span>
-                        </div>
+        function renderKitchenBoard() {
+            const receivedCol = document.getElementById('col-Received');
+            const preparingCol = document.getElementById('col-Preparing');
+            const readyCol = document.getElementById('col-Ready');
 
-                        <ul class="space-y-2 mb-4 text-sm">
-                            ${o.items.map((item, itemIdx) => {
-                                if(!item.checks) item.checks = [false, false];
-                                return `
-                                    <li class="flex justify-between items-center bg-gray-700/40 p-2.5 rounded-lg">
-                                        <span class="font-medium">${item.qty}x${item.name}</span>
-                                        <div class="flex items-center gap-4">
-                                            <label class="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
-                                                <input type="checkbox" ${item.checks[0] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 0})" class="w-4 h-4 accent-orange-500 rounded">
-                                                <span>1</span>
-                                            </label>
-                                            <label class="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
-                                                <input type="checkbox" ${item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 1})" class="w-4 h-4 accent-orange-500 rounded">
-                                                <span>2</span>
-                                            </label>
-                                        </div>
-                                    </li>
-                                `;
-                            }).join('')}
-                        </ul>
-                    </div>
-                    <div class="space-y-2 pt-3 border-t border-gray-700">
-                        <div class="grid grid-cols-3 gap-1 text-xs font-semibold">
-                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Received'})" class="py-2 rounded transition ${o.kitchenStatus==='Received'?'bg-blue-600':'bg-gray-700 hover:bg-gray-600'}">Recv</button>
-                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Cooking'})" class="py-2 rounded transition ${o.kitchenStatus==='Cooking'?'bg-amber-600':'bg-gray-700 hover:bg-gray-600'}">Cook</button>
-                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Ready'})" class="py-2 rounded transition ${o.kitchenStatus==='Ready'?'bg-emerald-600':'bg-gray-700 hover:bg-gray-600'}">Ready</button>
+            receivedCol.innerHTML = '';
+            preparingCol.innerHTML = '';
+            readyCol.innerHTML = '';
+
+            let counts = { Received: 0, Preparing: 0, Ready: 0 };
+
+            const filteredOrders = globalOrders.filter(o => 
+                o.kitchenStatus !== 'Paid' && 
+                (!o.restaurant || o.restaurant === currentKitchenRestaurant)
+            );
+
+            filteredOrders.forEach(ord => {
+                const status = ord.kitchenStatus || 'Received';
+                if (status === 'Received') counts.Received++;
+                else if (status === 'Preparing') counts.Preparing++;
+                else counts.Ready++;
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-700 rounded-xl p-4 shadow flex flex-col justify-between gap-3 text-sm";
+                
+                let itemsHtml = ord.items.map((i, iIdx) => {
+                    const check1 = i.checks && i.checks[0] ? 'checked' : '';
+                    const check2 = i.checks && i.checks[1] ? 'checked' : '';
+                    return `
+                        <div class="flex items-center justify-between py-1 border-b border-slate-800 last:border-0 text-xs">
+                            <span class="font-medium text-slate-200"><b>${i.qty}x</b> ${i.name}</span>
+                            <div class="flex gap-2">
+                                <input type="checkbox" ${check1} onclick="socket.emit('toggle_item_check', {orderId: '${ord.orderId}', itemIndex: ${iIdx}, checkIndex: 0})" class="w-4 h-4 accent-amber-500 cursor-pointer">
+                                <input type="checkbox" ${check2} onclick="socket.emit('toggle_item_check', {orderId: '${ord.orderId}', itemIndex: ${iIdx}, checkIndex: 1})" class="w-4 h-4 accent-emerald-500 cursor-pointer">
+                            </div>
+                        </div>`;
+                }).join('');
+
+                let actionButton = '';
+                if (status === 'Received') {
+                    actionButton = `<button onclick="socket.emit('update_kitchen_status', {orderId: '${ord.orderId}', kitchenStatus: 'Preparing'})" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg text-xs transition">Start Preparing 🔥</button>`;
+                } else if (status === 'Preparing') {
+                    actionButton = `<button onclick="socket.emit('update_kitchen_status', {orderId: '${ord.orderId}', kitchenStatus: 'Sent to Table'})" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-xs transition">Mark Ready & Send ✅</button>`;
+                } else {
+                    actionButton = `<span class="text-xs text-emerald-400 font-bold text-center block py-1">Served to Table 🍽️</span>`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-amber-400 text-base">Table #${ord.tableNumber}</span>
+                            <span class="text-[11px] text-slate-400">${ord.timestamp || ''}</span>
                         </div>
-                        <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Sent to Table'})" class="w-full bg-purple-600 hover:bg-purple-700 py-2.5 rounded-xl text-xs font-semibold transition shadow">Sent to Table ➔</button>
+                        <div class="bg-slate-800/60 rounded-lg p-2.5 mb-2">${itemsHtml}</div>
                     </div>
-                </div>`).join('');
+                    <div>${actionButton}</div>
+                `;
+
+                if (status === 'Received') receivedCol.appendChild(card);
+                else if (status === 'Preparing') preparingCol.appendChild(card);
+                else readyCol.appendChild(card);
+            });
+
+            document.getElementById('badge-Received').innerText = counts.Received;
+            document.getElementById('badge-Preparing').innerText = counts.Preparing;
+            document.getElementById('badge-Ready').innerText = counts.Ready;
         }
     </script>
 </body>

@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T By Talal | Complete Menu</title>
-    <!-- PWA Manifest & Meta Tags -->
+    <title>Restaurant Menu | Complete Menu</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="T By Talal">
+    <meta name="apple-mobile-web-app-title" content="Restaurant Menu">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -32,8 +31,9 @@
         header h1 { font-size: 1.4rem; color: var(--primary); letter-spacing: 0.5px; line-height: 1.2; }
         header p { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
 
-        .lang-btn, .table-btn, .push-btn { background: #fff; border: 1.5px solid var(--primary); color: var(--primary); padding: 5px 10px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 0.8rem; white-space: nowrap; transition: all 0.2s ease; }
-        .lang-btn:hover, .table-btn:hover, .push-btn:hover { background: var(--primary); color: #fff; }
+        .lang-btn, .table-btn, .push-btn, .restaurant-select { background: #fff; border: 1.5px solid var(--primary); color: var(--primary); padding: 5px 10px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 0.8rem; white-space: nowrap; transition: all 0.2s ease; outline: none; }
+        .restaurant-select { appearance: none; padding-right: 25px; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f28538%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 9px auto; }
+        .lang-btn:hover, .table-btn:hover, .push-btn:hover, .restaurant-select:hover { background: var(--primary); color: #fff; }
 
         .nav-tabs { display: flex; overflow-x: auto; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); gap: 0.5rem; white-space: nowrap; scrollbar-width: thin; max-width: 960px; margin: 0 auto; }
         .nav-tabs button { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; color: var(--text); transition: all 0.2s; }
@@ -43,7 +43,7 @@
         .menu-section { scroll-margin-top: 180px; }
 
         .section-title { font-size: 1.25rem; margin: 1.8rem 0 0.8rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: baseline; }
-        
+
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.9rem; }
         .card { background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border); padding: 0.9rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .card-info h3 { font-size: 0.95rem; color: var(--text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -61,7 +61,6 @@
 </head>
 <body>
 
-    <!-- TABLE SELECTION MODAL (Fallback if no URL param is present) -->
     <div id="tableModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
             <h2 class="text-xl font-bold mb-2 text-gray-800">Select Your Table</h2>
@@ -73,7 +72,6 @@
         </div>
     </div>
 
-    <!-- CUSTOM NOTIFICATION MODAL -->
     <div id="customModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
             <div id="modalIcon" class="text-3xl mb-2">🔔</div>
@@ -83,43 +81,20 @@
         </div>
     </div>
 
-    <!-- INSTALL PWA BANNER -->
-    <div id="installBanner" class="fixed bottom-20 left-4 right-4 bg-gray-900 text-white p-4 rounded-2xl shadow-2xl z-50 flex items-center justify-between hidden max-w-[960px] mx-auto border border-gray-700">
-        <div class="flex items-center gap-3">
-            <span class="text-2xl">📱</span>
-            <div>
-                <h4 class="font-bold text-sm">Install T By Talal App</h4>
-                <p class="text-xs text-gray-300">Add to home screen for fast ordering!</p>
-            </div>
-        </div>
-        <button onclick="showInstallInstructions()" class="bg-[#f28538] text-white text-xs px-4 py-2 rounded-xl font-bold">Install</button>
-    </div>
-
-    <!-- INSTALL GUIDE MODAL -->
-    <div id="installModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center text-gray-800">
-            <h3 class="text-lg font-bold mb-2">Install App on Phone</h3>
-            <p class="text-xs text-gray-600 mb-4" id="installGuideText">Follow the steps below:</p>
-            <div id="installSteps" class="text-left text-xs bg-gray-50 p-3 rounded-xl mb-4 space-y-2 border"></div>
-            <button onclick="document.getElementById('installModal').classList.add('hidden')" class="w-full bg-[#f28538] text-white py-2 rounded-xl font-bold text-sm">Got it!</button>
-        </div>
-    </div>
-
-    <!-- STICKY TOP WRAPPER (Header + Sticky Order Status Banner + Category Nav) -->
     <div class="sticky-top-wrapper">
         <header>
             <div class="header-titles">
-                <h1 id="brandTitle">T BY TALAL</h1>
+                <h1 id="brandTitle">RESTAURANT MENU</h1>
                 <p id="brandSubtitle">Prices in USD (Includes VAT & Service)</p>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
+                <select id="restaurantSelector" class="restaurant-select" onchange="switchRestaurant(this.value)" title="Select Restaurant"></select>
                 <button class="push-btn" onclick="requestNotificationPermission()" title="Enable Notifications">🔔</button>
                 <button class="table-btn" id="tableBtnDisplay" onclick="changeTable()">Table --</button>
                 <button class="lang-btn" id="langToggleBtn" onclick="toggleLanguage()">عربي</button>
             </div>
         </header>
 
-        <!-- STICKY ORDER STATUS TRACKER BANNER (Pinned directly under header) -->
         <div id="orderStatusBanner" class="max-w-[960px] mx-auto px-4 py-2 bg-white border-b border-gray-100 hidden">
             <div class="bg-indigo-900 text-white rounded-xl shadow-md overflow-hidden transition-all">
                 <div onclick="toggleStatusDrawer()" class="p-3 flex justify-between items-center cursor-pointer bg-indigo-950/60 hover:bg-indigo-950 transition">
@@ -178,32 +153,29 @@
         let cart = {};
         let menuCategories = [];
         let itemLookup = {};
-        let previousLatestStatus = '';
+        let currentRestaurant = '';
         let sentToTableNotifiedIds = new Set();
-        let deferredPrompt;
 
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
         const i18n = {
-            en: { 
-                brandTitle: "T BY TALAL", 
+            en: {
                 brandSubtitle: "Prices in USD (Includes VAT & Service)", 
                 langBtnText: "عربي", 
                 viewList: "🛒 View Order List", 
                 items: "items", 
-                add: "+ Add", 
+                add: "+ Add",
                 emptyCart: "Your list is empty.", 
                 sendOrder: "Send Order 🚀", 
                 notifyManager: "Ring Manager Bell & Request Table Activation 🛎️",
                 waitingActivation: "⏳ Waiting for Manager Activation..." 
             },
-            ar: { 
-                brandTitle: "T باي طلال", 
+            ar: {
                 brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", 
                 langBtnText: "English", 
                 viewList: "🛒 عرض تفاصيل الطلب", 
                 items: "أصناف", 
-                add: "+ إضافة", 
+                add: "+ إضافة",
                 emptyCart: "سلة الطلبات فارغة.", 
                 sendOrder: "إرسال الطلب 🚀", 
                 notifyManager: "إرسال تنبيه للمدير لتفعيل الطاولة 🛎️",
@@ -212,12 +184,10 @@
         };
 
         window.onload = async () => {
-            // Parse URL parameters for table number (e.g. ?tbl1, ?tbl=1, or ?table=1)
             const urlParams = new URLSearchParams(window.location.search);
             let extractedTable = urlParams.get('tbl') || urlParams.get('table');
-            
+
             if (!extractedTable) {
-                // Check if any query like ?tbl1 exists without '='
                 const searchStr = window.location.search.replace('?', '');
                 if (searchStr.startsWith('tbl')) {
                     extractedTable = searchStr.replace('tbl', '');
@@ -241,45 +211,56 @@
                 Notification.requestPermission();
             }
 
-            await loadMenuFromServer();
+            await loadRestaurantsList();
         };
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBanner').classList.remove('hidden');
-        });
+        async function loadRestaurantsList() {
+            try {
+                const res = await fetch('/api/restaurants');
+                const restaurants = await res.json();
+                const selector = document.getElementById('restaurantSelector');
+                selector.innerHTML = '';
 
-        function showInstallInstructions() {
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            const stepsContainer = document.getElementById('installSteps');
-            const guideText = document.getElementById('installGuideText');
-
-            if (isIOS) {
-                guideText.innerText = "For iPhone / Safari:";
-                stepsContainer.innerHTML = `
-                    <p>1. Tap the <b>Share</b> button <span class="text-blue-500 font-bold">⎋</span> at the bottom of Safari.</p>
-                    <p class="mt-2">2. Scroll down and tap <b>"Add to Home Screen" ➕</b>.</p>
-                    <p class="mt-2">3. Tap <b>Add</b> in the top right corner.</p>
-                `;
-            } else if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        document.getElementById('installBanner').classList.add('hidden');
-                    }
-                    deferredPrompt = null;
+                restaurants.forEach(resto => {
+                    const option = document.createElement('option');
+                    option.value = resto;
+                    option.textContent = resto;
+                    selector.appendChild(option);
                 });
-                return;
-            } else {
-                guideText.innerText = "For Android / Chrome:";
-                stepsContainer.innerHTML = `
-                    <p>1. Tap the menu dots <b>(⋮)</b> in the top right of Chrome.</p>
-                    <p class="mt-2">2. Tap <b>"Install app"</b> or <b>"Add to Home screen"</b>.</p>
-                `;
+
+                if (restaurants.length > 0) {
+                    currentRestaurant = restaurants[0];
+                    selector.value = currentRestaurant;
+                    await loadMenuFromServer(currentRestaurant);
+                }
+            } catch (e) {
+                console.error('Failed to load restaurants list', e);
             }
-            document.getElementById('installModal').classList.remove('hidden');
         }
+
+        async function switchRestaurant(restaurantName) {
+            currentRestaurant = restaurantName;
+            cart = {};
+            updateCartUI();
+            await loadMenuFromServer(restaurantName);
+        }
+
+        async function loadMenuFromServer(restaurantName) {
+            try {
+                const res = await fetch(`/api/menu/${restaurantName}`);
+                menuCategories = await res.json();
+                rebuildLookup();
+                renderMenu();
+            } catch(e) { console.error('Failed to load menu', e); }
+        }
+
+        socket.on('menu_updated', (data) => {
+            if (data && data.restaurant === currentRestaurant) {
+                menuCategories = data.menu;
+                rebuildLookup();
+                renderMenu();
+            }
+        });
 
         function requestNotificationPermission() {
             if ('Notification' in window) {
@@ -306,18 +287,14 @@
             document.getElementById('customModal').classList.add('hidden');
         }
 
-socket.on('state_update', (data) => {
+        socket.on('state_update', (data) => {
             if (currentTable) {
                 if (data.tables && data.tables[currentTable]) {
                     const wasTableOpen = tableIsOpen;
                     tableIsOpen = !!data.tables[currentTable].isOpen;
                     
                     if (!wasTableOpen && tableIsOpen) {
-                        activationSound.play().then(() => {
-                            activationSound.pause();
-                            activationSound.currentTime = 0;
-                        }).catch(e => console.log('Audio autoplay blocked:', e));
-                        
+                        activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                         isWaitingForActivation = false;
                         showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
                     }
@@ -336,13 +313,8 @@ socket.on('state_update', (data) => {
                 tableOrders.forEach(ord => {
                     if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
                         sentToTableNotifiedIds.add(ord.orderId);
-                        
-                        activationSound.play().then(() => {
-                            activationSound.pause();
-                            activationSound.currentTime = 0;
-                        }).catch(e => console.log('Audio blocked:', e));
-
-                        showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared and is being brought to your table!`, '🍲');
+                        activationSound.play().catch(e => console.log('Audio blocked:', e));
+                        showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared!`, '🍲');
                         triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
                     }
                 });
@@ -356,20 +328,7 @@ socket.on('state_update', (data) => {
                     document.getElementById('orderCountBadge').innerText = `${activeTableOrders.length} active`;
                     
                     const latestOrder = activeTableOrders[activeTableOrders.length - 1];
-                    const currentLatestStatus = latestOrder.kitchenStatus;
-                    document.getElementById('latestStatusBadge').innerText = currentLatestStatus;
-                    
-                    // UNIQUE STORAGE KEY PER ORDER ID TO PREVENT REFRESH SPAM
-                    const statusKey = `notified_status_${latestOrder.orderId}`;
-                    const lastNotifiedStatus = sessionStorage.getItem(statusKey);
-
-                    if (currentLatestStatus !== lastNotifiedStatus) {
-                        sessionStorage.setItem(statusKey, currentLatestStatus);
-                        // Only trigger notification if it's a genuine transition and not initial load
-                        if (lastNotifiedStatus !== null) {
-                            triggerSystemNotification('Order Status Update 📦', `Your order status is now: ${currentLatestStatus}`);
-                        }
-                    }
+                    document.getElementById('latestStatusBadge').innerText = latestOrder.kitchenStatus;
 
                     let ordersHtml = activeTableOrders.map((ord, idx) => {
                         let itemsStr = ord.items.map(i => `${i.qty}x ${i.name}`).join(', ');
@@ -394,21 +353,6 @@ socket.on('state_update', (data) => {
             }
         });
 
-        socket.on('menu_updated', (newMenu) => {
-            menuCategories = newMenu;
-            rebuildLookup();
-            renderMenu();
-        });
-
-        async function loadMenuFromServer() {
-            try {
-                const res = await fetch('/api/menu');
-                menuCategories = await res.json();
-                rebuildLookup();
-                renderMenu();
-            } catch(e) { console.error('Failed to load menu', e); }
-        }
-
         function rebuildLookup() {
             itemLookup = {};
             menuCategories.forEach(cat => cat.items.forEach(item => itemLookup[item.id] = item));
@@ -419,11 +363,7 @@ socket.on('state_update', (data) => {
             localStorage.setItem('restaurant_table_number', currentTable);
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             document.getElementById('tableModal').classList.add('hidden');
-
-            activationSound.play().then(() => {
-                activationSound.pause();
-                activationSound.currentTime = 0;
-            }).catch(e => console.log('Audio unlock error:', e));
+            activationSound.play().catch(e => console.log('Audio unlock error:', e));
         }
 
         function changeTable() { document.getElementById('tableModal').classList.remove('hidden'); }
@@ -441,7 +381,6 @@ socket.on('state_update', (data) => {
             document.documentElement.lang = currentLang;
             document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
             const t = i18n[currentLang];
-            document.getElementById('brandTitle').innerText = t.brandTitle;
             document.getElementById('brandSubtitle').innerText = t.brandSubtitle;
             document.getElementById('langToggleBtn').innerText = t.langBtnText;
             document.getElementById('lblViewList').innerText = t.viewList;
@@ -551,12 +490,12 @@ socket.on('state_update', (data) => {
                     cardsHtml += `
                         <div class="card">
                             <div class="card-info">
-                                <div class="alt-name">${altName}</div>
+                                <div class="alt-name">${altName || ''}</div>
                                 <h3><span>${primaryName}</span> ${qtyAdded > 0 ? `<span class="qty-badge-red">x${qtyAdded}</span>` : ''}</h3>
                                 <p>${desc || ''}</p>
                             </div>
                             <div class="card-action">
-                                <span class="price">$${item.price.toFixed(2)}</span>
+                                <span class="price">$${(item.price || 0).toFixed(2)}</span>
                                 <button class="btn-add" onclick="addToCart('${item.id}')">${t.add}</button>
                             </div>
                         </div>`;
@@ -587,7 +526,9 @@ socket.on('state_update', (data) => {
                 orderItems.push({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
             });
 
-            socket.emit('place_order', { tableNumber: currentTable, items: orderItems, total }, (res) => {
+            const restaurantName = document.getElementById('restaurantSelector').value;
+
+            socket.emit('place_order', { tableNumber: currentTable, restaurant: restaurantName, items: orderItems, total }, (res) => {
                 if (res.success) {
                     cart = {}; isCartOpen = false;
                     isWaitingForActivation = false;
