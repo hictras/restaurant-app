@@ -99,17 +99,18 @@
                         <ul class="space-y-2 mb-4 text-sm">
                             ${o.items.map((item, itemIdx) => {
                                 if(!item.checks) item.checks = [false, false];
+                                const groupName = `item_status_${o.orderId}_${itemIdx}`;
                                 return `
                                     <li class="flex justify-between items-center bg-gray-700/40 p-2.5 rounded-lg">
                                         <span class="font-medium">${item.qty}x${item.name}</span>
                                         <div class="flex items-center gap-4">
-                                            <label class="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
-                                                <input type="checkbox" ${item.checks[0] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 0})" class="w-4 h-4 accent-orange-500 rounded">
-                                                <span>1</span>
+                                            <label class="flex items-center gap-1.5 text-xs text-amber-300 cursor-pointer">
+                                                <input type="radio" name="${groupName}" ${item.checks[0] && !item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 0})" class="w-4 h-4 accent-amber-500">
+                                                <span>1: Cook</span>
                                             </label>
-                                            <label class="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
-                                                <input type="checkbox" ${item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 1})" class="w-4 h-4 accent-orange-500 rounded">
-                                                <span>2</span>
+                                            <label class="flex items-center gap-1.5 text-xs text-emerald-300 cursor-pointer">
+                                                <input type="radio" name="${groupName}" ${item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 1})" class="w-4 h-4 accent-emerald-500">
+                                                <span>2: Ready</span>
                                             </label>
                                         </div>
                                     </li>`;
