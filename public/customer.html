@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurant Menu | Complete Menu</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Restaurant Menu">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -182,41 +177,42 @@
             await loadRestaurantsList();
         };
 
-async function loadRestaurantsList() {
-    try {
-        const res = await fetch('/api/restaurants');
-        const restaurants = await res.json();
-        const selector = document.getElementById('restaurantSelector');
-        selector.innerHTML = '';
-        
-        if (restaurants && restaurants.length > 0) {
-            restaurants.forEach(resto => {
+        async function loadRestaurantsList() {
+            const selector = document.getElementById('restaurantSelector');
+            selector.innerHTML = '';
+            
+            try {
+                const res = await fetch('/api/restaurants');
+                const restaurants = await res.json();
+                
+                if (Array.isArray(restaurants) && restaurants.length > 0) {
+                    restaurants.forEach(resto => {
+                        const option = document.createElement('option');
+                        option.value = resto;
+                        option.textContent = resto;
+                        selector.appendChild(option);
+                    });
+                    currentRestaurant = restaurants[0];
+                    selector.value = currentRestaurant;
+                } else {
+                    const option = document.createElement('option');
+                    option.value = 'Default';
+                    option.textContent = 'Default';
+                    selector.appendChild(option);
+                    currentRestaurant = 'Default';
+                }
+            } catch (e) {
+                console.error('Error fetching restaurants:', e);
                 const option = document.createElement('option');
-                option.value = resto;
-                option.textContent = resto;
+                option.value = 'Default';
+                option.textContent = 'Default';
                 selector.appendChild(option);
-            });
-            currentRestaurant = restaurants[0];
-            selector.value = currentRestaurant;
-        } else {
-            // Fallback if directory scan returns empty
-            const option = document.createElement('option');
-            option.value = 'Default';
-            option.textContent = 'Default';
-            selector.appendChild(option);
-            currentRestaurant = 'Default';
-        }
+                currentRestaurant = 'Default';
+            }
 
-        await loadMenuFromServer(currentRestaurant);
-        if (typeof evaluateTableState === 'function') {
+            await loadMenuFromServer(currentRestaurant);
             evaluateTableState();
         }
-    } catch (e) { 
-        console.error('Failed to load restaurants list, using default', e);
-        currentRestaurant = 'Default';
-        await loadMenuFromServer(currentRestaurant);
-    }
-}
 
         async function switchRestaurant(restaurantName) {
             currentRestaurant = restaurantName;
@@ -411,7 +407,7 @@ async function loadRestaurantsList() {
             }
         }
 
-        function renderMenu() {
+function renderMenu() {
             const container = document.getElementById('menuContainer');
             const nav = document.getElementById('categoryNav');
             const t = i18n[currentLang];
@@ -431,15 +427,32 @@ async function loadRestaurantsList() {
                 const secDiv = document.createElement('div');
                 secDiv.id = 'sec-' + idx;
                 secDiv.classList.add('menu-section');
-                secDiv.innerHTML = `<div class="section-title"><span>${catName}</span></div><div class="grid">${sec.items.map(item => `
-                    <div class="card">
-                        <div class="card-info">
-                            <div class="alt-name">${(currentLang === 'ar' ? item.nameEn : item.nameAr) || ''}</div>
-                            <h3><span>${currentLang === 'ar' ? item.nameAr : item.nameEn}</span> ${cart[item.id] > 0 ? `<span class="qty-badge-red">x${cart[item.id]}</span>` : ''}</h3>
-                            <p>${(currentLang === 'ar' ? item.descAr : item.descEn) \vert{}\vert{} ''}</p>                          </div>                          <div class="card-action">                              <span class="price">$${(item.price || 0).toFixed(2)}</span>
-                            <button class="btn-add" onclick="addToCart('${item.id}')">${t.add}</button>
-                        </div>
-                    </div>`).join('')}</div>`;
+                
+                let itemsHtml = '';
+                if (sec.items && Array.isArray(sec.items)) {
+                    itemsHtml = sec.items.map(item => {
+                        const itemName = currentLang === 'ar' ? (item.nameAr || item.nameEn) : item.nameEn;
+                        const altName = currentLang === 'ar' ? item.nameEn : (item.nameAr || '');
+                        const itemDesc = currentLang === 'ar' ? (item.descAr || item.descEn || '') : (item.descEn || '');
+                        const badge = cart[item.id] > 0 ? `<span class="qty-badge-red">x${cart[item.id]}</span>` : '';
+                        const priceVal = (item.price || 0).toFixed(2);
+                        
+                        return `
+                        <div class="card">
+                            <div class="card-info">
+                                <div class="alt-name">${altName}</div>
+                                <h3><span>${itemName}</span> ${badge}</h3>
+                                <p>${itemDesc}</p>
+                            </div>
+                            <div class="card-action">
+                                <span class="price">$${priceVal}</span>
+                                <button class="btn-add" onclick="addToCart('${item.id}')">${t.add}</button>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+
+                secDiv.innerHTML = `<div class="section-title"><span>${catName}</span></div><div class="grid">${itemsHtml}</div>`;
                 container.appendChild(secDiv);
             });
         }
