@@ -66,7 +66,7 @@
     </div>
 
     <div id="section-revenue" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6 hidden">
-        <h2 class="text-lg font-bold mb-4 text-gray-800">📊 Total Revenue by Restaurant & Day</h2>
+        <h2 class="text-lg font-bold mb-4 text-gray-800">📊 Total Revenue by Table & Day</h2>
         <div id="revenueContainer" class="space-y-6"><p class="text-gray-400 italic text-sm">No settled revenue data available yet.</p></div>
     </div>
 
@@ -115,7 +115,10 @@
             document.getElementById('activeMenuRestoLabel').innerText = `Active: ${restaurantName}`;
             if (currentTab === 'menu') {
                 loadMenuAdmin();
+            } else if (currentTab === 'revenue') {
+                loadRevenueAdmin();
             }
+            renderAdmin();
         }
 
         function requestNotificationPermission() {
@@ -189,6 +192,17 @@
 
         function renderAdmin() {
             const { tables, tableRequests, orders } = globalData;
+            
+            // Filter orders belonging to the selected restaurant
+            const restaurantOrders = orders.filter(o => 
+                !o.restaurant || o.restaurant === currentAdminRestaurant
+            );
+
+            // Determine table status specifically for this restaurant
+            const activeTablesForResto = new Set(
+                restaurantOrders.filter(o => o.billStatus !== 'Paid').map(o => String(o.tableNumber))
+            );
+
             const hasPendingRequests = Object.values(tableRequests).some(val => val === true);
             const tablesTabBtn = document.getElementById('tab-tables');
             if (hasPendingRequests && currentTab !== 'tables') {
@@ -200,8 +214,10 @@
             document.getElementById('tablesGrid').innerHTML = Object.keys(tables).map(k => {
                 const t = tables[k];
                 const isWaiting = tableRequests[k] && !t.isOpen;
+                const isOccupiedForResto = activeTablesForResto.has(String(k));
+
                 let statusBg = 'bg-emerald-50 border-emerald-200';
-                if (t.status === 'Occupied') statusBg = 'bg-red-100 border-red-400 text-red-900';
+                if (isOccupiedForResto) statusBg = 'bg-red-100 border-red-400 text-red-900';
                 if (isWaiting) statusBg = 'bg-amber-100 border-amber-400 animate-pulse';
 
                 return `
@@ -209,7 +225,7 @@
                         <div>
                             <div class="flex justify-between items-center mb-2">
                                 <span class="font-bold text-base">Table #${k}</span>
-                                <span class="text-xs px-2 py-0.5 rounded font-bold ${t.status==='Occupied'?'bg-red-500 text-white':'bg-white border'}">${t.status}</span>
+                                <span class="text-xs px-2 py-0.5 rounded font-bold ${isOccupiedForResto ? 'bg-red-500 text-white' : 'bg-white border'}">${isOccupiedForResto ? 'Occupied' : t.status}</span>
                             </div>
                             ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-bold mb-2">🛎️ Ready to Order!</span>' : ''}
                             <p class="text-xs text-gray-600 mb-3">Ordering: <b>${t.isOpen ? 'OPEN' : 'CLOSED'}</b></p>
@@ -220,9 +236,9 @@
                     </div>`;
             }).join('');
 
-            document.getElementById('billsList').innerHTML = orders.length === 0 ? '<p class="text-gray-400 italic text-sm">No active bills.</p>' : orders.map(o => `
+            document.getElementById('billsList').innerHTML = restaurantOrders.length === 0 ? '<p class="text-gray-400 italic text-sm">No active bills for this restaurant.</p>' : restaurantOrders.map(o => `
                 <div class="flex justify-between items-center border-b pb-3 text-sm">
-                    <div><b>Table #${o.tableNumber}</b> (${o.restaurant || 'Default'}) - Total: $${o.total.toFixed(2)} <span class="text-xs ml-2 px-2 py-0.5 rounded bg-gray-200">Kitchen: ${o.kitchenStatus}</span></div>
+                    <div><b>Table #${o.tableNumber}</b> - Total: $${o.total.toFixed(2)} <span class="text-xs ml-2 px-2 py-0.5 rounded bg-gray-200">Kitchen: ${o.kitchenStatus}</span></div>
                     <div class="flex items-center gap-3">
                         <span class="px-2.5 py-1 rounded-full text-xs font-bold ${o.billStatus==='Paid'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${o.billStatus}</span>
                         <button onclick="socket.emit('update_bill_status', {orderId: '${o.orderId}', billStatus: '${o.billStatus === 'Paid' ? 'Unpaid' : 'Paid'}'})" class="bg-gray-800 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-black transition">Toggle Paid</button>
@@ -253,38 +269,32 @@
             const res = await fetch('/api/revenue');
             const revenueData = await res.json();
             const revContainer = document.getElementById('revenueContainer');
-            const restaurants = Object.keys(revenueData);
+            
+            const restoData = revenueData[currentAdminRestaurant];
 
-            if (restaurants.length === 0) {
-                revContainer.innerHTML = `<p class="text-gray-400 italic text-sm">No settled revenue data available yet.</p>`;
+            if (!restoData || Object.keys(restoData).length === 0) {
+                revContainer.innerHTML = `<p class="text-gray-400 italic text-sm">No settled revenue data available for ${currentAdminRestaurant}.</p>`;
             } else {
-                revContainer.innerHTML = restaurants.map(resto => {
-                    const dates = Object.keys(revenueData[resto]);
-                    let restoHtml = `<div class="border rounded-2xl p-5 bg-white shadow-sm mb-4"><h3 class="font-bold text-indigo-600 text-lg mb-3 border-b pb-2">🏪 Restaurant: ${resto}</h3>`;
-                    
-                    restoHtml += dates.map(date => {
-                        const tableRevenues = revenueData[resto][date];
-                        let dailyTotal = Object.values(tableRevenues).reduce((a, b) => a + b, 0);
-                        let tableRows = Object.keys(tableRevenues).map(tbl => `
-                            <div class="flex justify-between border-b py-1.5 text-sm">
-                                <span class="font-medium text-gray-700">Table #${tbl}</span>
-                                <span class="font-bold text-emerald-600">$${tableRevenues[tbl].toFixed(2)}</span>
-                            </div>
-                        `).join('');
+                const dates = Object.keys(restoData);
+                revContainer.innerHTML = dates.map(date => {
+                    const tableRevenues = restoData[date];
+                    let dailyTotal = Object.values(tableRevenues).reduce((a, b) => a + b, 0);
+                    let tableRows = Object.keys(tableRevenues).map(tbl => `
+                        <div class="flex justify-between border-b py-1.5 text-sm">
+                            <span class="font-medium text-gray-700">Table #${tbl}</span>
+                            <span class="font-bold text-emerald-600">$${tableRevenues[tbl].toFixed(2)}</span>
+                        </div>
+                    `).join('');
 
-                        return `
-                            <div class="border rounded-xl p-4 bg-gray-50 mb-3">
-                                <div class="flex justify-between items-center mb-3 border-b pb-2">
-                                    <h4 class="font-bold text-gray-800">📅 Date: ${date}</h4>
-                                    <span class="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold">Total: $${dailyTotal.toFixed(2)}</span>
-                                </div>
-                                <div class="space-y-1">${tableRows}</div>
+                    return `
+                        <div class="border rounded-xl p-4 bg-gray-50 mb-3">
+                            <div class="flex justify-between items-center mb-3 border-b pb-2">
+                                <h4 class="font-bold text-gray-800">📅 Date: ${date}</h4>
+                                <span class="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold">Total: $${dailyTotal.toFixed(2)}</span>
                             </div>
-                        `;
-                    }).join('');
-
-                    restoHtml += `</div>`;
-                    return restoHtml;
+                            <div class="space-y-1">${tableRows}</div>
+                        </div>
+                    `;
                 }).join('');
             }
         }
