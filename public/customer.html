@@ -104,6 +104,13 @@
         </div>
     </div>
 
+    <!-- TABLE NOT OPEN MESSAGE BANNER -->
+    <div id="tableClosedBanner" class="hidden max-w-lg mx-auto my-24 bg-white p-8 rounded-2xl shadow-xl text-center border border-amber-200">
+        <div class="text-4xl mb-3">⏳</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Table is not open for order</h2>
+        <p class="text-sm text-gray-600">Please inform your waiter to activate your table.</p>
+    </div>
+
     <!-- TAB 1: MENU VIEW -->
     <div id="view-menu" class="container"></div>
 
@@ -119,10 +126,7 @@
         </div>
     </div>
 
-    <div class="cart-bar">
-        <div id="activationWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium">
-            ⏳ Table is locked. Click below to notify the manager for activation.
-        </div>
+    <div id="cartBarContainer" class="cart-bar">
         <div onclick="toggleCartDrawer()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span id="itemCountBadge" style="background: var(--primary); color: white; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: bold;">0 items</span>
@@ -147,7 +151,6 @@
         let currentLang = 'en';
         let currentTable = null;
         let tableIsOpen = false;
-        let isWaitingForActivation = false;
         let isCartOpen = false;
         let cart = {};
         let menuCategories = [];
@@ -158,8 +161,8 @@
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
         const i18n = {
-            en: { brandSubtitle: "Prices in USD (Includes VAT & Service)", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀", notifyManager: "Ring Manager Bell & Request Table Activation 🛎️", waitingActivation: "⏳ Waiting for Manager Activation..." },
-            ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "إرسال تنبيه للمدير لتفعيل الطاولة 🛎️", waitingActivation: "⏳ في انتظار تفعيل الطاولة من المدير..." }
+            en: { brandSubtitle: "Prices in USD (Includes VAT & Service)", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀" },
+            ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀" }
         };
 
         window.onload = async () => {
@@ -234,7 +237,6 @@
         async function switchRestaurant(restaurantName) {
             currentRestaurant = restaurantName;
             cart = {};
-            isWaitingForActivation = false;
             updateCartUI();
             await loadMenuFromServer(restaurantName);
             evaluateTableState();
@@ -295,18 +297,26 @@
             
             if (!wasTableOpen && tableIsOpen) {
                 activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
-                isWaitingForActivation = false;
-                showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
-            }
-            
-            const restoRequests = (data.tableRequests && data.tableRequests[currentRestaurant]) || {};
-            if (restoRequests[currentTable]) {
-                isWaitingForActivation = true;
-            } else if (tableIsOpen) {
-                isWaitingForActivation = false;
+                showModal('Table Activated!', 'Your table has been opened by the manager. You can now browse and send your orders.', '🎉');
             }
 
-            document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
+            const closedBanner = document.getElementById('tableClosedBanner');
+            const menuContainer = document.getElementById('view-menu');
+            const categoryNav = document.getElementById('categoryNavWrapper');
+            const cartBar = document.getElementById('cartBarContainer');
+
+            if (!tableIsOpen) {
+                closedBanner.classList.remove('hidden');
+                menuContainer.classList.add('hidden');
+                categoryNav.style.display = 'none';
+                cartBar.style.display = 'none';
+            } else {
+                closedBanner.classList.add('hidden');
+                menuContainer.classList.remove('hidden');
+                categoryNav.style.display = 'block';
+                cartBar.style.display = 'block';
+            }
+
             updateCartUI();
 
             const tableOrders = (data.orders || []).filter(o => (o.restaurant || 'Default') === currentRestaurant && String(o.tableNumber) === String(currentTable));
@@ -430,15 +440,12 @@
             }
             document.getElementById('barTotal').innerText = '$' + total.toFixed(2);
             document.getElementById('itemCountBadge').innerText = `${count} ${t.items}`;
+            
             const sendBtn = document.getElementById('sendOrderBtn');
             sendBtn.disabled = count === 0;
-            if (tableIsOpen) {
-                sendBtn.innerText = t.sendOrder; sendBtn.style.background = 'var(--primary)'; sendBtn.style.cursor = 'pointer';
-            } else if (isWaitingForActivation) {
-                sendBtn.innerText = t.waitingActivation; sendBtn.style.background = '#64748b'; sendBtn.style.cursor = 'not-allowed';
-            } else {
-                sendBtn.innerText = t.notifyManager; sendBtn.style.background = '#f59e0b'; sendBtn.style.cursor = 'pointer';
-            }
+            sendBtn.innerText = t.sendOrder;
+            sendBtn.style.background = 'var(--primary)';
+            sendBtn.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
         }
 
         function renderMenu() {
@@ -491,14 +498,6 @@
         }
 
         function sendOrder() {
-            if (isWaitingForActivation) return;
-            if (!tableIsOpen) {
-                socket.emit('table_request', { restaurant: currentRestaurant, tableNumber: currentTable });
-                isWaitingForActivation = true;
-                updateCartUI();
-                showModal('Bell Rung! 🛎️', 'Notification sent to the manager to open your table.', '🛎️');
-                return;
-            }
             let total = 0, orderItems = [];
             Object.keys(cart).forEach(id => {
                 const item = itemLookup[id];
@@ -508,7 +507,7 @@
             });
             socket.emit('place_order', { tableNumber: currentTable, restaurant: currentRestaurant, items: orderItems, total }, (res) => {
                 if (res.success) {
-                    cart = {}; isCartOpen = false; isWaitingForActivation = false;
+                    cart = {}; isCartOpen = false;
                     document.getElementById('cartDetails').style.display = 'none';
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
                     showModal('Success!', 'Order sent successfully to the kitchen!', '🚀');
