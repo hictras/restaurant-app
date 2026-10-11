@@ -182,26 +182,41 @@
             await loadRestaurantsList();
         };
 
-        async function loadRestaurantsList() {
-            try {
-                const res = await fetch('/api/restaurants');
-                const restaurants = await res.json();
-                const selector = document.getElementById('restaurantSelector');
-                selector.innerHTML = '';
-                restaurants.forEach(resto => {
-                    const option = document.createElement('option');
-                    option.value = resto;
-                    option.textContent = resto;
-                    selector.appendChild(option);
-                });
-                if (restaurants.length > 0) {
-                    currentRestaurant = restaurants[0];
-                    selector.value = currentRestaurant;
-                    await loadMenuFromServer(currentRestaurant);
-                    evaluateTableState();
-                }
-            } catch (e) { console.error('Failed to load restaurants list', e); }
+async function loadRestaurantsList() {
+    try {
+        const res = await fetch('/api/restaurants');
+        const restaurants = await res.json();
+        const selector = document.getElementById('restaurantSelector');
+        selector.innerHTML = '';
+        
+        if (restaurants && restaurants.length > 0) {
+            restaurants.forEach(resto => {
+                const option = document.createElement('option');
+                option.value = resto;
+                option.textContent = resto;
+                selector.appendChild(option);
+            });
+            currentRestaurant = restaurants[0];
+            selector.value = currentRestaurant;
+        } else {
+            // Fallback if directory scan returns empty
+            const option = document.createElement('option');
+            option.value = 'Default';
+            option.textContent = 'Default';
+            selector.appendChild(option);
+            currentRestaurant = 'Default';
         }
+
+        await loadMenuFromServer(currentRestaurant);
+        if (typeof evaluateTableState === 'function') {
+            evaluateTableState();
+        }
+    } catch (e) { 
+        console.error('Failed to load restaurants list, using default', e);
+        currentRestaurant = 'Default';
+        await loadMenuFromServer(currentRestaurant);
+    }
+}
 
         async function switchRestaurant(restaurantName) {
             currentRestaurant = restaurantName;
