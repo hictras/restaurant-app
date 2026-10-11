@@ -100,6 +100,7 @@
                     currentAdminRestaurant = restaurants[0];
                     selector.value = currentAdminRestaurant;
                     document.getElementById('activeMenuRestoLabel').innerText = `Active: ${currentAdminRestaurant}`;
+                    renderAdmin();
                 }
             } catch (e) { console.error('Failed to load restaurants list', e); }
         }
@@ -131,7 +132,8 @@
 
         socket.on('state_update', (data) => {
             globalData = data;
-            const pendingCount = Object.values(data.tableRequests).filter(v => v === true).length;
+            const restoRequests = (data.tableRequests && data.tableRequests[currentAdminRestaurant]) || {};
+            const pendingCount = Object.values(restoRequests).filter(v => v === true).length;
             if (pendingCount > previousPendingCount && previousPendingCount !== 0) {
                 alertSound.play().catch(e => console.log('Audio blocked.'));
                 triggerSystemNotification('Table Bell Ring 🛎️', 'A table is requesting manager activation!');
@@ -155,16 +157,29 @@
 
         function renderAdmin() {
             const { tables, tableRequests, orders } = globalData;
-            const restaurantOrders = orders.filter(o => !o.restaurant || o.restaurant === currentAdminRestaurant);
+            const restoTables = (tables && tables[currentAdminRestaurant]) || {
+                1: { isOpen: false, status: 'Valid' },
+                2: { isOpen: false, status: 'Valid' },
+                3: { isOpen: false, status: 'Valid' },
+                4: { isOpen: false, status: 'Valid' },
+                5: { isOpen: false, status: 'Valid' },
+                6: { isOpen: false, status: 'Valid' }
+            };
+            const restoRequests = (tableRequests && tableRequests[currentAdminRestaurant]) || {};
+
+            const restaurantOrders = (orders || []).filter(o => (o.restaurant || 'Default') === currentAdminRestaurant);
             const activeTablesForResto = new Set(restaurantOrders.filter(o => o.billStatus !== 'Paid').map(o => String(o.tableNumber)));
-            const hasPendingRequests = Object.values(tableRequests).some(v => v === true);
+            const hasPendingRequests = Object.values(restoRequests).some(v => v === true);
             const tablesTabBtn = document.getElementById('tab-tables');
 
-            if (hasPendingRequests && currentTab !== 'tables') tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-red-600 text-white animate-pulse shadow-lg border-2 border-red-300";
-            else if (currentTab !== 'tables') tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border transition";
+            if (hasPendingRequests && currentTab !== 'tables') {
+                tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-red-600 text-white animate-pulse shadow-lg border-2 border-red-300";
+            } else if (currentTab !== 'tables') {
+                tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border transition";
+            }
 
-            document.getElementById('tablesGrid').innerHTML = Object.keys(tables).map(k => {
-                const t = tables[k], isWaiting = tableRequests[k] && !t.isOpen, isOccupied = activeTablesForResto.has(String(k));
+            document.getElementById('tablesGrid').innerHTML = Object.keys(restoTables).map(k => {
+                const t = restoTables[k], isWaiting = restoRequests[k] && !t.isOpen, isOccupied = activeTablesForResto.has(String(k));
                 return `
                     <div class="border p-4 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-100 border-red-400 text-red-900' : isWaiting ? 'bg-amber-100 border-amber-400 animate-pulse' : 'bg-emerald-50 border-emerald-200'}">
                         <div>
@@ -175,7 +190,7 @@
                             ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-bold mb-2">🛎️ Ready to Order!</span>' : ''}
                             <p class="text-xs text-gray-600 mb-3">Ordering: <b>${t.isOpen ? 'OPEN' : 'CLOSED'}</b></p>
                         </div>
-                        <button onclick="socket.emit('toggle_table', {tableNum: ${k}})" class="w-full py-2 rounded-lg text-xs font-semibold text-white transition ${t.isOpen ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}">
+                        <button onclick="socket.emit('toggle_table', {restaurant: '${currentAdminRestaurant}', tableNum: ${k}})" class="w-full py-2 rounded-lg text-xs font-semibold text-white transition ${t.isOpen ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}">
                             ${t.isOpen ? 'Close Ordering 🔒' : 'Open Ordering 🔓'}
                         </button>
                     </div>`;
@@ -271,7 +286,7 @@
                             </div>
                             <div class="space-y-1">${Object.keys(tableRevenues).map(tbl => `
                                 <div class="flex justify-between border-b py-1.5 text-sm">
-                                    <span class="font-medium text-gray-700">Table #${tbl}</span>                                     <span class="font-bold text-emerald-600">$${tableRevenues[tbl].toFixed(2)}</span>
+                                    <span class="font-medium text-gray-700">Table #${tbl}</span>                                 <span class="font-bold text-emerald-600">$${tableRevenues[tbl].toFixed(2)}</span>
                                 </div>`).join('')}</div>
                         </div>`;
                 }).join('');

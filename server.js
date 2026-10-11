@@ -45,30 +45,46 @@ function saveJSON(filePath, data) {
     } catch (e) { console.error(`Error writing ${filePath}:`, e); }
 }
 
-let tables = loadJSON(tablesFilePath, {
-    1: { isOpen: false, status: 'Valid' },
-    2: { isOpen: false, status: 'Valid' },
-    3: { isOpen: false, status: 'Valid' },
-    4: { isOpen: false, status: 'Valid' },
-    5: { isOpen: false, status: 'Valid' },
-    6: { isOpen: false, status: 'Valid' }
-});
-let tableRequests = loadJSON(requestsFilePath, {});
+function getDefaultTables() {
+    return {
+        1: { isOpen: false, status: 'Valid' },
+        2: { isOpen: false, status: 'Valid' },
+        3: { isOpen: false, status: 'Valid' },
+        4: { isOpen: false, status: 'Valid' },
+        5: { isOpen: false, status: 'Valid' },
+        6: { isOpen: false, status: 'Valid' }
+    };
+}
+
+let tables = loadJSON(tablesFilePath, {}); // Structure: { restaurantName: { 1: { isOpen, status }, ... } }
+let tableRequests = loadJSON(requestsFilePath, {}); // Structure: { restaurantName: { 1: true, ... } }
 let orders = loadJSON(ordersFilePath, []);
 let paidOrderHistory = loadJSON(paidHistoryFilePath, []);
 
+function ensureRestaurantTables(restaurantName) {
+    if (!tables[restaurantName]) {
+        tables[restaurantName] = getDefaultTables();
+        saveJSON(tablesFilePath, tables);
+    }
+    if (!tableRequests[restaurantName]) {
+        tableRequests[restaurantName] = {};
+    }
+}
+
 function syncTableStatuses() {
-    const activeTablesWithUnpaidBills = new Set(
-        orders.filter(o => o.billStatus !== 'Paid').map(o => String(o.tableNumber))
-    );
     let changed = false;
-    for (let tNum in tables) {
-        if (activeTablesWithUnpaidBills.has(tNum) && tables[tNum].status !== 'Occupied') {
-            tables[tNum].status = 'Occupied';
-            changed = true;
-        } else if (!activeTablesWithUnpaidBills.has(tNum) && tables[tNum].status === 'Occupied') {
-            tables[tNum].status = 'Valid';
-            changed = true;
+    for (let resto in tables) {
+        const activeTablesWithUnpaidBills = new Set(
+            orders.filter(o => (o.restaurant || 'Default') === resto && o.billStatus !== 'Paid').map(o => String(o.tableNumber))
+        );
+        for (let tNum in tables[resto]) {
+            if (activeTablesWithUnpaidBills.has(tNum) && tables[resto][tNum].status !== 'Occupied') {
+                tables[resto][tNum].status = 'Occupied';
+                changed = true;
+            } else if (!activeTablesWithUnpaidBills.has(tNum) && tables[resto][tNum].status === 'Occupied') {
+                tables[resto][tNum].status = 'Valid';
+                changed = true;
+            }
         }
     }
     if (changed) saveJSON(tablesFilePath, tables);
@@ -77,34 +93,45 @@ function syncTableStatuses() {
 io.on('connection', (socket) => {
     socket.emit('state_update', { tables, tableRequests, orders });
 
-    socket.on('toggle_table', ({ tableNum }) => {
+    socket.on('toggle_table', ({ restaurant, tableNum }) => {
+        const resto = restaurant || 'Default';
+        ensureRestaurantTables(resto);
         const tKey = String(tableNum);
-        if (tables[tKey]) {
-            tables[tKey].isOpen = !tables[tKey].isOpen;
-            if (tables[tKey].isOpen) delete tableRequests[tKey];
+        if (tables[resto] && tables[resto][tKey]) {
+            tables[resto][tKey].isOpen = !tables[resto][tKey].isOpen;
+            if (tables[resto][tKey].isOpen && tableRequests[resto]) {
+                delete tableRequests[resto][tKey];
+            }
             saveJSON(tablesFilePath, tables);
             saveJSON(requestsFilePath, tableRequests);
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
-    socket.on('table_request', ({ tableNumber }) => {
+    socket.on('table_request', ({ restaurant, tableNumber }) => {
+        const resto = restaurant || 'Default';
+        ensureRestaurantTables(resto);
         if (tableNumber) {
-            tableRequests[String(tableNumber)] = true;
+            if (!tableRequests[resto]) tableRequests[resto] = {};
+            tableRequests[resto][String(tableNumber)] = true;
             saveJSON(requestsFilePath, tableRequests);
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
     socket.on('place_order', ({ tableNumber, restaurant, items, total }, callback) => {
+        const resto = restaurant || 'Default';
+        ensureRestaurantTables(resto);
         const tKey = String(tableNumber);
-        if (!tables[tKey] || !tables[tKey].isOpen) {
-            return callback({ success: false, message: 'Table is closed by manager.' });
+        
+        if (!tables[resto][tKey] || !tables[resto][tKey].isOpen) {
+            return callback({ success: false, message: 'Table is closed by manager for this restaurant.' });
         }
+        
         const newOrder = {
             orderId: uuidv4(),
             tableNumber: tKey,
-            restaurant: restaurant || 'Default',
+            restaurant: resto,
             items: items.map(i => ({ ...i, checks: [false, false] })),
             total,
             kitchenStatus: 'Received',
@@ -112,8 +139,9 @@ io.on('connection', (socket) => {
             date: new Date().toISOString().split('T')[0],
             timestamp: new Date().toLocaleTimeString()
         };
+        
         orders.push(newOrder);
-        tables[tKey].isOpen = false;
+        tables[resto][tKey].isOpen = false;
         saveJSON(ordersFilePath, orders);
         saveJSON(tablesFilePath, tables);
         syncTableStatuses();

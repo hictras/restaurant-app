@@ -154,6 +154,7 @@
         let itemLookup = {};
         let currentRestaurant = '';
         let sentToTableNotifiedIds = new Set();
+        let latestServerState = { tables: {}, tableRequests: {}, orders: [] };
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
         const i18n = {
@@ -197,6 +198,7 @@
                     currentRestaurant = restaurants[0];
                     selector.value = currentRestaurant;
                     await loadMenuFromServer(currentRestaurant);
+                    evaluateTableState();
                 }
             } catch (e) { console.error('Failed to load restaurants list', e); }
         }
@@ -204,8 +206,10 @@
         async function switchRestaurant(restaurantName) {
             currentRestaurant = restaurantName;
             cart = {};
+            isWaitingForActivation = false;
             updateCartUI();
             await loadMenuFromServer(restaurantName);
+            evaluateTableState();
         }
 
         async function loadMenuFromServer(restaurantName) {
@@ -247,53 +251,67 @@
         function closeCustomModal() { document.getElementById('customModal').classList.add('hidden'); }
 
         socket.on('state_update', (data) => {
-            if (currentTable) {
-                if (data.tables && data.tables[currentTable]) {
-                    const wasTableOpen = tableIsOpen;
-                    tableIsOpen = !!data.tables[currentTable].isOpen;
-                    if (!wasTableOpen && tableIsOpen) {
-                        activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
-                        isWaitingForActivation = false;
-                        showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
-                    }
-                    document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
-                    updateCartUI();
-                }
-                if (data.tableRequests && data.tableRequests[currentTable]) {
-                    isWaitingForActivation = true;
-                    updateCartUI();
-                }
-                const tableOrders = data.orders.filter(o => String(o.tableNumber) === String(currentTable));
-                tableOrders.forEach(ord => {
-                    if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
-                        sentToTableNotifiedIds.add(ord.orderId);
-                        activationSound.play().catch(e => console.log('Audio blocked:', e));
-                        showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared!`, '🍲');
-                        triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
-                    }
-                });
-                const activeTableOrders = tableOrders.filter(o => o.kitchenStatus !== 'Sent to Table');
-                const banner = document.getElementById('orderStatusBanner');
-                const trackerContainer = document.getElementById('statusTrackerItems');
-                if (activeTableOrders.length > 0) {
-                    banner.classList.remove('hidden');
-                    document.getElementById('orderCountBadge').innerText = `${activeTableOrders.length} active`;
-                    const latestOrder = activeTableOrders[activeTableOrders.length - 1];
-                    document.getElementById('latestStatusBadge').innerText = latestOrder.kitchenStatus;
-                    trackerContainer.innerHTML = activeTableOrders.map((ord, idx) => `
-                        <div class="flex justify-between items-center bg-indigo-800/60 p-2 rounded-lg text-xs">
-                            <div><span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span> <span class="text-indigo-100">${ord.items.map(i => `${i.qty}x${i.name}`).join(', ')}</span></div>
-                            <span class="bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full text-[10px]">${ord.kitchenStatus}</span>
-                        </div>
-                    `).join('');
-                } else {
-                    banner.classList.add('hidden');
-                    isStatusDrawerOpen = false;
-                    document.getElementById('statusDrawerDetails').style.display = 'none';
-                    document.getElementById('statusChevron').style.transform = 'rotate(0deg)';
-                }
-            }
+            latestServerState = data;
+            evaluateTableState();
         });
+
+        function evaluateTableState() {
+            if (!currentTable || !currentRestaurant) return;
+            const data = latestServerState;
+            
+            const restoTables = (data.tables && data.tables[currentRestaurant]) || {};
+            const restoTable = restoTables[currentTable] || { isOpen: false, status: 'Valid' };
+            
+            const wasTableOpen = tableIsOpen;
+            tableIsOpen = !!restoTable.isOpen;
+            
+            if (!wasTableOpen && tableIsOpen) {
+                activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
+                isWaitingForActivation = false;
+                showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
+            }
+            
+            const restoRequests = (data.tableRequests && data.tableRequests[currentRestaurant]) || {};
+            if (restoRequests[currentTable]) {
+                isWaitingForActivation = true;
+            } else if (tableIsOpen) {
+                isWaitingForActivation = false;
+            }
+
+            document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
+            updateCartUI();
+
+            const tableOrders = (data.orders || []).filter(o => (o.restaurant || 'Default') === currentRestaurant && String(o.tableNumber) === String(currentTable));
+            tableOrders.forEach(ord => {
+                if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
+                    sentToTableNotifiedIds.add(ord.orderId);
+                    activationSound.play().catch(e => console.log('Audio blocked:', e));
+                    showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared!`, '🍲');
+                    triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
+                }
+            });
+
+            const activeTableOrders = tableOrders.filter(o => o.kitchenStatus !== 'Sent to Table');
+            const banner = document.getElementById('orderStatusBanner');
+            const trackerContainer = document.getElementById('statusTrackerItems');
+            if (activeTableOrders.length > 0) {
+                banner.classList.remove('hidden');
+                document.getElementById('orderCountBadge').innerText = `${activeTableOrders.length} active`;
+                const latestOrder = activeTableOrders[activeTableOrders.length - 1];
+                document.getElementById('latestStatusBadge').innerText = latestOrder.kitchenStatus;
+                trackerContainer.innerHTML = activeTableOrders.map((ord, idx) => `
+                    <div class="flex justify-between items-center bg-indigo-800/60 p-2 rounded-lg text-xs">
+                        <div><span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span> <span class="text-indigo-100">${ord.items.map(i => `${i.qty}x${i.name}`).join(', ')}</span></div>
+                        <span class="bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full text-[10px]">${ord.kitchenStatus}</span>
+                    </div>
+                `).join('');
+            } else {
+                banner.classList.add('hidden');
+                isStatusDrawerOpen = false;
+                document.getElementById('statusDrawerDetails').style.display = 'none';
+                document.getElementById('statusChevron').style.transform = 'rotate(0deg)';
+            }
+        }
 
         function rebuildLookup() {
             itemLookup = {};
@@ -306,6 +324,7 @@
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             document.getElementById('tableModal').classList.add('hidden');
             activationSound.play().catch(e => console.log('Audio unlock error:', e));
+            evaluateTableState();
         }
 
         function changeTable() { document.getElementById('tableModal').classList.remove('hidden'); }
@@ -402,7 +421,7 @@
                         <div class="card-info">
                             <div class="alt-name">${(currentLang === 'ar' ? item.nameEn : item.nameAr) || ''}</div>
                             <h3><span>${currentLang === 'ar' ? item.nameAr : item.nameEn}</span> ${cart[item.id] > 0 ? `<span class="qty-badge-red">x${cart[item.id]}</span>` : ''}</h3>
-                            <p>${(currentLang === 'ar' ? item.descAr : item.descEn) \vert{}\vert{} ''}</p>                         </div>                         <div class="card-action">                             <span class="price">$${(item.price || 0).toFixed(2)}</span>
+                            <p>${(currentLang === 'ar' ? item.descAr : item.descEn) \vert{}\vert{} ''}</p>                          </div>                          <div class="card-action">                              <span class="price">$${(item.price || 0).toFixed(2)}</span>
                             <button class="btn-add" onclick="addToCart('${item.id}')">${t.add}</button>
                         </div>
                     </div>`).join('')}</div>`;
@@ -413,7 +432,7 @@
         function sendOrder() {
             if (isWaitingForActivation) return;
             if (!tableIsOpen) {
-                socket.emit('table_request', { tableNumber: currentTable });
+                socket.emit('table_request', { restaurant: currentRestaurant, tableNumber: currentTable });
                 isWaitingForActivation = true;
                 updateCartUI();
                 showModal('Bell Rung! 🛎️', 'Notification sent to the manager to open your table.', '🛎️');
@@ -426,8 +445,7 @@
                 total += item.price * cart[id];
                 orderItems.push({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
             });
-            const restaurantName = document.getElementById('restaurantSelector').value;
-            socket.emit('place_order', { tableNumber: currentTable, restaurant: restaurantName, items: orderItems, total }, (res) => {
+            socket.emit('place_order', { tableNumber: currentTable, restaurant: currentRestaurant, items: orderItems, total }, (res) => {
                 if (res.success) {
                     cart = {}; isCartOpen = false; isWaitingForActivation = false;
                     document.getElementById('cartDetails').style.display = 'none';
