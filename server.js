@@ -53,14 +53,15 @@ function saveJSON(filePath, data) {
     } catch (e) { console.error(`Error saving ${filePath}:`, e); }
 }
 
-let tables = loadJSON(tablesFilePath, {}); // { restaurantName: { "1": { isOpen: false, canOrder: false, status: 'Valid' } } }
+let tables = loadJSON(tablesFilePath, {}); 
 let orders = loadJSON(ordersFilePath, []);
 let tableRequests = loadJSON(tableRequestsFilePath, {});
 
 function getRestaurantsList() {
     try {
         if (fs.existsSync(restaurantsDir)) {
-            return fs.readdirSync(restaurantsDir).filter(f => fs.statSync(path.join(restaurantsDir, f)).isDirectory());
+            const dirs = fs.readdirSync(restaurantsDir).filter(f => fs.statSync(path.join(restaurantsDir, f)).isDirectory());
+            if (dirs.length > 0) return dirs;
         }
     } catch (e) { console.error('Error reading restaurants directory', e); }
     return ['Default'];
