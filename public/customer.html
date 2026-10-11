@@ -41,7 +41,6 @@
 
         .container { max-width: 960px; margin: 1rem auto; padding: 0 1rem; }
         .menu-section { scroll-margin-top: 180px; }
-
         .section-title { font-size: 1.25rem; margin: 1.8rem 0 0.8rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: baseline; }
 
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.9rem; }
@@ -155,62 +154,30 @@
         let itemLookup = {};
         let currentRestaurant = '';
         let sentToTableNotifiedIds = new Set();
-
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
         const i18n = {
-            en: {
-                brandSubtitle: "Prices in USD (Includes VAT & Service)", 
-                langBtnText: "عربي", 
-                viewList: "🛒 View Order List", 
-                items: "items", 
-                add: "+ Add",
-                emptyCart: "Your list is empty.", 
-                sendOrder: "Send Order 🚀", 
-                notifyManager: "Ring Manager Bell & Request Table Activation 🛎️",
-                waitingActivation: "⏳ Waiting for Manager Activation..." 
-            },
-            ar: {
-                brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", 
-                langBtnText: "English", 
-                viewList: "🛒 عرض تفاصيل الطلب", 
-                items: "أصناف", 
-                add: "+ إضافة",
-                emptyCart: "سلة الطلبات فارغة.", 
-                sendOrder: "إرسال الطلب 🚀", 
-                notifyManager: "إرسال تنبيه للمدير لتفعيل الطاولة 🛎️",
-                waitingActivation: "⏳ في انتظار تفعيل الطاولة من المدير..." 
-            }
+            en: { brandSubtitle: "Prices in USD (Includes VAT & Service)", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀", notifyManager: "Ring Manager Bell & Request Table Activation 🛎️", waitingActivation: "⏳ Waiting for Manager Activation..." },
+            ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "إرسال تنبيه للمدير لتفعيل الطاولة 🛎️", waitingActivation: "⏳ في انتظار تفعيل الطاولة من المدير..." }
         };
 
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             let extractedTable = urlParams.get('tbl') || urlParams.get('table');
-
             if (!extractedTable) {
                 const searchStr = window.location.search.replace('?', '');
-                if (searchStr.startsWith('tbl')) {
-                    extractedTable = searchStr.replace('tbl', '');
-                }
+                if (searchStr.startsWith('tbl')) extractedTable = searchStr.replace('tbl', '');
             }
-
             if (extractedTable) {
                 currentTable = extractedTable;
                 localStorage.setItem('restaurant_table_number', currentTable);
             } else {
                 currentTable = localStorage.getItem('restaurant_table_number');
             }
-
-            if (!currentTable) {
-                document.getElementById('tableModal').classList.remove('hidden');
-            } else {
-                document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
-            }
+            if (!currentTable) document.getElementById('tableModal').classList.remove('hidden');
+            else document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             
-            if ('Notification' in window && Notification.permission !== 'granted') {
-                Notification.requestPermission();
-            }
-
+            if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
             await loadRestaurantsList();
         };
 
@@ -220,22 +187,18 @@
                 const restaurants = await res.json();
                 const selector = document.getElementById('restaurantSelector');
                 selector.innerHTML = '';
-
                 restaurants.forEach(resto => {
                     const option = document.createElement('option');
                     option.value = resto;
                     option.textContent = resto;
                     selector.appendChild(option);
                 });
-
                 if (restaurants.length > 0) {
                     currentRestaurant = restaurants[0];
                     selector.value = currentRestaurant;
                     await loadMenuFromServer(currentRestaurant);
                 }
-            } catch (e) {
-                console.error('Failed to load restaurants list', e);
-            }
+            } catch (e) { console.error('Failed to load restaurants list', e); }
         }
 
         async function switchRestaurant(restaurantName) {
@@ -271,9 +234,7 @@
         }
 
         function triggerSystemNotification(title, body) {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(title, { body: body });
-            }
+            if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body: body });
         }
 
         function showModal(title, message, icon = '🔔') {
@@ -283,33 +244,26 @@
             document.getElementById('customModal').classList.remove('hidden');
         }
 
-        function closeCustomModal() {
-            document.getElementById('customModal').classList.add('hidden');
-        }
+        function closeCustomModal() { document.getElementById('customModal').classList.add('hidden'); }
 
         socket.on('state_update', (data) => {
             if (currentTable) {
                 if (data.tables && data.tables[currentTable]) {
                     const wasTableOpen = tableIsOpen;
                     tableIsOpen = !!data.tables[currentTable].isOpen;
-                    
                     if (!wasTableOpen && tableIsOpen) {
                         activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                         isWaitingForActivation = false;
                         showModal('Table Activated!', 'Your table has been opened by the manager. You can now send your orders.', '🎉');
                     }
-
                     document.getElementById('activationWarning').classList.toggle('hidden', tableIsOpen || isWaitingForActivation);
                     updateCartUI();
                 }
-
                 if (data.tableRequests && data.tableRequests[currentTable]) {
                     isWaitingForActivation = true;
                     updateCartUI();
                 }
-
                 const tableOrders = data.orders.filter(o => String(o.tableNumber) === String(currentTable));
-                
                 tableOrders.forEach(ord => {
                     if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
                         sentToTableNotifiedIds.add(ord.orderId);
@@ -318,32 +272,20 @@
                         triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
                     }
                 });
-
                 const activeTableOrders = tableOrders.filter(o => o.kitchenStatus !== 'Sent to Table');
                 const banner = document.getElementById('orderStatusBanner');
                 const trackerContainer = document.getElementById('statusTrackerItems');
-                
                 if (activeTableOrders.length > 0) {
                     banner.classList.remove('hidden');
                     document.getElementById('orderCountBadge').innerText = `${activeTableOrders.length} active`;
-                    
                     const latestOrder = activeTableOrders[activeTableOrders.length - 1];
                     document.getElementById('latestStatusBadge').innerText = latestOrder.kitchenStatus;
-
-                    let ordersHtml = activeTableOrders.map((ord, idx) => {
-                        let itemsStr = ord.items.map(i => `${i.qty}x ${i.name}`).join(', ');
-                        return `
-                            <div class="flex justify-between items-center bg-indigo-800/60 p-2 rounded-lg text-xs">
-                                <div>
-                                    <span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span> 
-                                    <span class="text-indigo-100">${itemsStr}</span>
-                                </div>
-                                <span class="bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full text-[10px]">${ord.kitchenStatus}</span>
-                            </div>
-                        `;
-                    }).join('');
-
-                    trackerContainer.innerHTML = ordersHtml;
+                    trackerContainer.innerHTML = activeTableOrders.map((ord, idx) => `
+                        <div class="flex justify-between items-center bg-indigo-800/60 p-2 rounded-lg text-xs">
+                            <div><span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span> <span class="text-indigo-100">${ord.items.map(i => `${i.qty}x${i.name}`).join(', ')}</span></div>
+                            <span class="bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full text-[10px]">${ord.kitchenStatus}</span>
+                        </div>
+                    `).join('');
                 } else {
                     banner.classList.add('hidden');
                     isStatusDrawerOpen = false;
@@ -367,13 +309,10 @@
         }
 
         function changeTable() { document.getElementById('tableModal').classList.remove('hidden'); }
-
         function toggleStatusDrawer() {
             isStatusDrawerOpen = !isStatusDrawerOpen;
-            const details = document.getElementById('statusDrawerDetails');
-            const chevron = document.getElementById('statusChevron');
-            details.style.display = isStatusDrawerOpen ? 'block' : 'none';
-            chevron.style.transform = isStatusDrawerOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            document.getElementById('statusDrawerDetails').style.display = isStatusDrawerOpen ? 'block' : 'none';
+            document.getElementById('statusChevron').style.transform = isStatusDrawerOpen ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
         function toggleLanguage() {
@@ -390,18 +329,13 @@
 
         function toggleCartDrawer() {
             isCartOpen = !isCartOpen;
-            const details = document.getElementById('cartDetails');
-            const chevron = document.getElementById('chevronIcon');
-            details.style.display = isCartOpen ? 'block' : 'none';
-            chevron.style.transform = isCartOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            document.getElementById('cartDetails').style.display = isCartOpen ? 'block' : 'none';
+            document.getElementById('chevronIcon').style.transform = isCartOpen ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
         function addToCart(id) { cart[id] = (cart[id] || 0) + 1; updateCartUI(); renderMenu(); }
         function changeQty(id, delta) {
-            if (cart[id]) {
-                cart[id] += delta;
-                if (cart[id] <= 0) delete cart[id];
-            }
+            if (cart[id]) { cart[id] += delta; if (cart[id] <= 0) delete cart[id]; }
             updateCartUI(); renderMenu();
         }
 
@@ -410,22 +344,17 @@
             const itemIds = Object.keys(cart);
             let total = 0, count = 0;
             const listEl = document.getElementById('cartItemsList');
-
             if (itemIds.length === 0) {
                 listEl.innerHTML = `<p style="text-align:center; color:#999; margin: 1rem 0; font-size:0.85rem;">${t.emptyCart}</p>`;
             } else {
-                let html = '';
-                itemIds.forEach(id => {
+                listEl.innerHTML = itemIds.map(id => {
                     const item = itemLookup[id];
-                    if (!item) return;
-                    const qty = cart[id];
-                    const subtotal = item.price * qty;
-                    total += subtotal;
-                    count += qty;
-                    const title = currentLang === 'ar' ? (item.nameAr || item.nameEn) : item.nameEn;
-                    html += `
+                    if (!item) return '';
+                    const qty = cart[id], subtotal = item.price * qty;
+                    total += subtotal; count += qty;
+                    return `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem;">
-                            <div><strong>${title}</strong></div>
+                            <div><strong>${currentLang === 'ar' ? (item.nameAr || item.nameEn) : item.nameEn}</strong></div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <button onclick="changeQty('${id}', -1)" style="background:#eee; border:none; width:22px; height:22px; border-radius:50%; font-weight:bold; cursor:pointer;">-</button>
                                 <span>${qty}</span>
@@ -433,28 +362,18 @@
                                 <span style="font-weight:600; min-width:50px; text-align:right;">$${subtotal.toFixed(2)}</span>
                             </div>
                         </div>`;
-                });
-                listEl.innerHTML = html;
+                }).join('');
             }
-
             document.getElementById('barTotal').innerText = '$' + total.toFixed(2);
             document.getElementById('itemCountBadge').innerText = `${count} ${t.items}`;
-
             const sendBtn = document.getElementById('sendOrderBtn');
             sendBtn.disabled = count === 0;
-
             if (tableIsOpen) {
-                sendBtn.innerText = t.sendOrder;
-                sendBtn.style.background = 'var(--primary)';
-                sendBtn.style.cursor = 'pointer';
+                sendBtn.innerText = t.sendOrder; sendBtn.style.background = 'var(--primary)'; sendBtn.style.cursor = 'pointer';
             } else if (isWaitingForActivation) {
-                sendBtn.innerText = t.waitingActivation;
-                sendBtn.style.background = '#64748b';
-                sendBtn.style.cursor = 'not-allowed';
+                sendBtn.innerText = t.waitingActivation; sendBtn.style.background = '#64748b'; sendBtn.style.cursor = 'not-allowed';
             } else {
-                sendBtn.innerText = t.notifyManager;
-                sendBtn.style.background = '#f59e0b';
-                sendBtn.style.cursor = 'pointer';
+                sendBtn.innerText = t.notifyManager; sendBtn.style.background = '#f59e0b'; sendBtn.style.cursor = 'pointer';
             }
         }
 
@@ -463,7 +382,6 @@
             const nav = document.getElementById('categoryNav');
             const t = i18n[currentLang];
             nav.innerHTML = ''; container.innerHTML = '';
-
             menuCategories.forEach((sec, idx) => {
                 const catName = currentLang === 'ar' ? sec.categoryAr : sec.categoryEn;
                 const tab = document.createElement('button');
@@ -479,36 +397,21 @@
                 const secDiv = document.createElement('div');
                 secDiv.id = 'sec-' + idx;
                 secDiv.classList.add('menu-section');
-
-                let cardsHtml = '';
-                sec.items.forEach(item => {
-                    const primaryName = currentLang === 'ar' ? item.nameAr : item.nameEn;
-                    const altName = currentLang === 'ar' ? item.nameEn : item.nameAr;
-                    const desc = currentLang === 'ar' ? item.descAr : item.descEn;
-                    const qtyAdded = cart[item.id] || 0;
-
-                    cardsHtml += `
-                        <div class="card">
-                            <div class="card-info">
-                                <div class="alt-name">${altName || ''}</div>
-                                <h3><span>${primaryName}</span> ${qtyAdded > 0 ? `<span class="qty-badge-red">x${qtyAdded}</span>` : ''}</h3>
-                                <p>${desc || ''}</p>
-                            </div>
-                            <div class="card-action">
-                                <span class="price">$${(item.price || 0).toFixed(2)}</span>
-                                <button class="btn-add" onclick="addToCart('${item.id}')">${t.add}</button>
-                            </div>
-                        </div>`;
-                });
-
-                secDiv.innerHTML = `<div class="section-title"><span>${catName}</span></div><div class="grid">${cardsHtml}</div>`;
+                secDiv.innerHTML = `<div class="section-title"><span>${catName}</span></div><div class="grid">${sec.items.map(item => `
+                    <div class="card">
+                        <div class="card-info">
+                            <div class="alt-name">${(currentLang === 'ar' ? item.nameEn : item.nameAr) || ''}</div>
+                            <h3><span>${currentLang === 'ar' ? item.nameAr : item.nameEn}</span> ${cart[item.id] > 0 ? `<span class="qty-badge-red">x${cart[item.id]}</span>` : ''}</h3>
+                            <p>${(currentLang === 'ar' ? item.descAr : item.descEn) \vert{}\vert{} ''}</p>                         </div>                         <div class="card-action">                             <span class="price">$${(item.price || 0).toFixed(2)}</span>
+                            <button class="btn-add" onclick="addToCart('${item.id}')">${t.add}</button>
+                        </div>
+                    </div>`).join('')}</div>`;
                 container.appendChild(secDiv);
             });
         }
 
         function sendOrder() {
             if (isWaitingForActivation) return;
-
             if (!tableIsOpen) {
                 socket.emit('table_request', { tableNumber: currentTable });
                 isWaitingForActivation = true;
@@ -516,29 +419,22 @@
                 showModal('Bell Rung! 🛎️', 'Notification sent to the manager to open your table.', '🛎️');
                 return;
             }
-
-            let total = 0;
-            let orderItems = [];
+            let total = 0, orderItems = [];
             Object.keys(cart).forEach(id => {
                 const item = itemLookup[id];
                 if (!item) return;
                 total += item.price * cart[id];
                 orderItems.push({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
             });
-
             const restaurantName = document.getElementById('restaurantSelector').value;
-
             socket.emit('place_order', { tableNumber: currentTable, restaurant: restaurantName, items: orderItems, total }, (res) => {
                 if (res.success) {
-                    cart = {}; isCartOpen = false;
-                    isWaitingForActivation = false;
+                    cart = {}; isCartOpen = false; isWaitingForActivation = false;
                     document.getElementById('cartDetails').style.display = 'none';
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
                     showModal('Success!', 'Order sent successfully to the kitchen!', '🚀');
                     updateCartUI(); renderMenu();
-                } else {
-                    showModal('Notice', res.message, '⚠️');
-                }
+                } else { showModal('Notice', res.message, '⚠️'); }
             });
         }
     </script>

@@ -13,12 +13,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Root route to serve customer page automatically
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'customer.html'));
 });
 
-// Persistent storage directories & file paths
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
@@ -164,7 +162,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// API: Get list of available restaurants from the restaurants folder
 app.get('/api/restaurants', (req, res) => {
     try {
         const files = fs.readdirSync(restaurantsDir);
@@ -177,7 +174,6 @@ app.get('/api/restaurants', (req, res) => {
     }
 });
 
-// API: Get menu for a specific restaurant
 app.get('/api/menu/:restaurantName', (req, res) => {
     const restaurantName = req.params.restaurantName;
     const safeName = path.basename(restaurantName);
@@ -185,7 +181,6 @@ app.get('/api/menu/:restaurantName', (req, res) => {
     res.json(loadJSON(menuFilePath, []));
 });
 
-// API: Add menu item to a specific restaurant
 app.post('/api/menu/:restaurantName', (req, res) => {
     const restaurantName = req.params.restaurantName;
     const safeName = path.basename(restaurantName);
@@ -211,7 +206,32 @@ app.post('/api/menu/:restaurantName', (req, res) => {
     res.json({ success: true, item: newItem });
 });
 
-// API: Delete menu item from a specific restaurant
+app.put('/api/menu/:restaurantName/:id', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const id = req.params.id;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+
+    const { nameEn, nameAr, price, category } = req.body;
+    let menuCategories = loadJSON(menuFilePath, []);
+    let updatedItem = null;
+
+    menuCategories.forEach(cat => {
+        cat.items.forEach(item => {
+            if (item.id === id) {
+                if (nameEn !== undefined) item.nameEn = nameEn;
+                if (nameAr !== undefined) item.nameAr = nameAr || nameEn;
+                if (price !== undefined) item.price = parseFloat(price) || 0;
+                updatedItem = item;
+            }
+        });
+    });
+
+    saveJSON(menuFilePath, menuCategories);
+    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
+    res.json({ success: true, item: updatedItem });
+});
+
 app.delete('/api/menu/:restaurantName/:id', (req, res) => {
     const restaurantName = req.params.restaurantName;
     const id = req.params.id;
@@ -225,7 +245,6 @@ app.delete('/api/menu/:restaurantName/:id', (req, res) => {
     res.json({ success: true });
 });
 
-// API: Daily Revenue Report (Grouped by Restaurant -> Date -> Table)
 app.get('/api/revenue', (req, res) => {
     const allPaid = [...paidOrderHistory, ...orders.filter(o => o.billStatus === 'Paid')];
     const revenueReport = {};
