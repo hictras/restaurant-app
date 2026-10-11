@@ -12,6 +12,19 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// Explicit HTML routes
+app.get('/admin.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.get('/customer.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'customer.html'));
+});
+
+app.get('/kitchen.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'kitchen.html'));
+});
+
 const dataDir = path.join(__dirname, 'data');
 const restaurantsDir = path.join(__dirname, 'restaurants');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
