@@ -333,15 +333,17 @@
                         </div>
                         <ul class="text-sm space-y-2">
                             ${ord.items.map(i => {
-                                const check1 = i.checks && i.checks[0] ? '✅ Done' : '⏳ Pending';
-                                const check2 = i.checks && i.checks[1] ? '✅ Checked' : '';
+                                const check1 = i.checks && i.checks[0] ? '🔥 Cooking' : '';
+                                const check2 = i.checks && i.checks[1] ? '✅ Ready' : '';
+                                const statusLabel = check2 || check1 || '⏳ Pending';
+                                const statusBg = check2 ? 'bg-emerald-50 text-emerald-600' : check1 ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500';
                                 return `
                                 <li class="flex justify-between items-center bg-white p-2 rounded border text-gray-700">
                                     <div>
                                         <span class="font-bold">${i.qty}x</span>${i.name}
                                     </div>
-                                    <div class="flex items-center gap-2 text-xs font-semibold text-gray-500">
-                                        <span class="bg-gray-100 px-2 py-0.5 rounded">${check1}</span>${check2 ? `<span class="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded">${check2}</span>` : ''}
+                                    <div class="flex items-center gap-2 text-xs font-semibold">
+                                        <span class="${statusBg} px-2 py-0.5 rounded">${statusLabel}</span>
                                     </div>
                                 </li>`;
                             }).join('')}
@@ -500,7 +502,6 @@
                 const item = itemLookup[id];
                 if (!item) return;
                 total += item.price * cart[id];
-                orderItems.path({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
                 orderItems.push({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
             });
             socket.emit('place_order', { tableNumber: currentTable, restaurant: currentRestaurant, items: orderItems, total }, (res) => {
