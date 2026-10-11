@@ -249,15 +249,21 @@
         async function loadMenuFromServer(restaurantName) {
             try {
                 const res = await fetch(`/api/menu/${restaurantName}`);
-                menuCategories = await res.json();
+                const data = await res.json();
+                menuCategories = Array.isArray(data) ? data : (data.menu || []);
                 rebuildLookup();
                 renderMenu();
-            } catch(e) { console.error('Failed to load menu', e); }
+            } catch(e) { 
+                console.error('Failed to load menu', e);
+                menuCategories = [];
+                rebuildLookup();
+                renderMenu();
+            }
         }
 
         socket.on('menu_updated', (data) => {
             if (data && data.restaurant === currentRestaurant) {
-                menuCategories = data.menu;
+                menuCategories = Array.isArray(data.menu) ? data.menu : [];
                 rebuildLookup();
                 renderMenu();
             }
@@ -380,7 +386,13 @@
 
         function rebuildLookup() {
             itemLookup = {};
-            menuCategories.forEach(cat => cat.items.forEach(item => itemLookup[item.id] = item));
+            if (Array.isArray(menuCategories)) {
+                menuCategories.forEach(cat => {
+                    if (cat.items && Array.isArray(cat.items)) {
+                        cat.items.forEach(item => itemLookup[item.id] = item);
+                    }
+                });
+            }
         }
 
         function saveTableSelection() {
@@ -466,6 +478,9 @@
             const nav = document.getElementById('categoryNav');
             const t = i18n[currentLang];
             nav.innerHTML = ''; container.innerHTML = '';
+            
+            if (!Array.isArray(menuCategories)) return;
+
             menuCategories.forEach((sec, idx) => {
                 const catName = currentLang === 'ar' ? sec.categoryAr : sec.categoryEn;
                 const tab = document.createElement('button');

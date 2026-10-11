@@ -31,6 +31,8 @@ app.get('/kitchen.html', (req, res) => {
 
 const dataDir = path.join(__dirname, 'data');
 const restaurantsDir = path.join(__dirname, 'restaurants');
+const publicRestaurantsDir = path.join(__dirname, 'public', 'restaurants');
+
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 if (!fs.existsSync(restaurantsDir)) fs.mkdirSync(restaurantsDir);
 
@@ -59,10 +61,17 @@ let tableRequests = loadJSON(tableRequestsFilePath, {});
 
 function getRestaurantsList() {
     try {
+        let list = [];
         if (fs.existsSync(restaurantsDir)) {
             const dirs = fs.readdirSync(restaurantsDir).filter(f => fs.statSync(path.join(restaurantsDir, f)).isDirectory());
-            if (dirs.length > 0) return dirs;
+            list.push(...dirs);
         }
+        if (fs.existsSync(publicRestaurantsDir)) {
+            const dirs = fs.readdirSync(publicRestaurantsDir).filter(f => fs.statSync(path.join(publicRestaurantsDir, f)).isDirectory());
+            list.push(...dirs);
+        }
+        const uniqueList = [...new Set(list)];
+        if (uniqueList.length > 0) return uniqueList;
     } catch (e) { console.error('Error reading restaurants directory', e); }
     return ['Default'];
 }
@@ -100,10 +109,22 @@ app.get('/api/restaurants', (req, res) => {
 app.get('/api/menu/:restaurant', (req, res) => {
     const restaurant = req.params.restaurant;
     const menuPath = path.join(restaurantsDir, restaurant, 'menu.json');
+    const publicMenuPath = path.join(publicRestaurantsDir, restaurant, 'menu.json');
+    
     if (fs.existsSync(menuPath)) {
         res.json(loadJSON(menuPath, []));
+    } else if (fs.existsSync(publicMenuPath)) {
+        res.json(loadJSON(publicMenuPath, []));
     } else {
-        res.status(404).json({ error: 'Menu not found' });
+        res.json([
+            {
+                categoryEn: "Main Menu",
+                categoryAr: "القائمة الرئيسية",
+                items: [
+                    { id: "item_1", nameEn: "Sample Item", nameAr: "عنصر تجريبي", price: 10.00, descEn: "Please add your menu.json", descAr: "يرجى إضافة القائمة" }
+                ]
+            }
+        ]);
     }
 });
 
@@ -162,7 +183,7 @@ io.on('connection', (socket) => {
         };
 
         orders.push(newOrder);
-        tables[resto][tKey].canOrder = false; // Lock ordering button again for next round
+        tables[resto][tKey].canOrder = false; // Lock order button again for next round
         saveJSON(ordersFilePath, orders);
         saveJSON(tablesFilePath, tables);
         syncTableStatuses();
