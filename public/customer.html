@@ -127,6 +127,9 @@
     </div>
 
     <div id="cartBarContainer" class="cart-bar">
+        <div id="orderPermissionWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium text-center">
+            ⏳ Waiting for manager to unlock the order button.
+        </div>
         <div onclick="toggleCartDrawer()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span id="itemCountBadge" style="background: var(--primary); color: white; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: bold;">0 items</span>
@@ -151,6 +154,7 @@
         let currentLang = 'en';
         let currentTable = null;
         let tableIsOpen = false;
+        let tableCanOrder = false;
         let isCartOpen = false;
         let cart = {};
         let menuCategories = [];
@@ -161,8 +165,8 @@
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
         const i18n = {
-            en: { brandSubtitle: "Prices in USD (Includes VAT & Service)", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀" },
-            ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀" }
+            en: { brandSubtitle: "Prices in USD (Includes VAT & Service)", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀", waitingOrder: "Waiting for Manager ⏳" },
+            ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", waitingOrder: "في انتظار المدير ⏳" }
         };
 
         window.onload = async () => {
@@ -290,14 +294,15 @@
             const data = latestServerState;
             
             const restoTables = (data.tables && data.tables[currentRestaurant]) || {};
-            const restoTable = restoTables[currentTable] || { isOpen: false, status: 'Valid' };
+            const restoTable = restoTables[currentTable] || { isOpen: false, canOrder: false, status: 'Valid' };
             
             const wasTableOpen = tableIsOpen;
             tableIsOpen = !!restoTable.isOpen;
+            tableCanOrder = !!restoTable.canOrder;
             
             if (!wasTableOpen && tableIsOpen) {
                 activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
-                showModal('Table Activated!', 'Your table has been opened by the manager. You can now browse and send your orders.', '🎉');
+                showModal('Table Activated!', 'Your table has been opened by the manager. You can now browse the menu.', '🎉');
             }
 
             const closedBanner = document.getElementById('tableClosedBanner');
@@ -317,6 +322,7 @@
                 cartBar.style.display = 'block';
             }
 
+            document.getElementById('orderPermissionWarning').classList.toggle('hidden', tableCanOrder);
             updateCartUI();
 
             const tableOrders = (data.orders || []).filter(o => (o.restaurant || 'Default') === currentRestaurant && String(o.tableNumber) === String(currentTable));
@@ -442,10 +448,17 @@
             document.getElementById('itemCountBadge').innerText = `${count} ${t.items}`;
             
             const sendBtn = document.getElementById('sendOrderBtn');
-            sendBtn.disabled = count === 0;
-            sendBtn.innerText = t.sendOrder;
-            sendBtn.style.background = 'var(--primary)';
-            sendBtn.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+            if (!tableCanOrder) {
+                sendBtn.disabled = true;
+                sendBtn.innerText = t.waitingOrder;
+                sendBtn.style.background = '#64748b';
+                sendBtn.style.cursor = 'not-allowed';
+            } else {
+                sendBtn.disabled = count === 0;
+                sendBtn.innerText = t.sendOrder;
+                sendBtn.style.background = 'var(--primary)';
+                sendBtn.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+            }
         }
 
         function renderMenu() {
@@ -498,6 +511,7 @@
         }
 
         function sendOrder() {
+            if (!tableCanOrder) return;
             let total = 0, orderItems = [];
             Object.keys(cart).forEach(id => {
                 const item = itemLookup[id];
@@ -510,7 +524,7 @@
                     cart = {}; isCartOpen = false;
                     document.getElementById('cartDetails').style.display = 'none';
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
-                    showModal('Success!', 'Order sent successfully to the kitchen!', '🚀');
+                    showModal('Success!', 'Order sent successfully to the kitchen! Order button locked for next round.', '🚀');
                     updateCartUI(); renderMenu();
                     switchMainTab('status');
                 } else { showModal('Notice', res.message, '⚠️'); }
