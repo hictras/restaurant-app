@@ -10,19 +10,23 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Explicit HTML routes
+// Explicit HTML routes pointing to the 'public' folder
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'customer.html'));
+});
+
 app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 app.get('/customer.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'customer.html'));
+    res.sendFile(path.join(__dirname, 'public', 'customer.html'));
 });
 
 app.get('/kitchen.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'kitchen.html'));
+    res.sendFile(path.join(__dirname, 'public', 'kitchen.html'));
 });
 
 const dataDir = path.join(__dirname, 'data');
