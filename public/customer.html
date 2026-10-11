@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Menu | Complete Menu</title>
+    <title>Restaurant Menu & Order Status</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -30,7 +30,11 @@
         .restaurant-select { appearance: none; padding-right: 25px; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f28538%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 9px auto; }
         .lang-btn:hover, .table-btn:hover, .push-btn:hover, .restaurant-select:hover { background: var(--primary); color: #fff; }
 
-        .nav-tabs { display: flex; overflow-x: auto; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); gap: 0.5rem; white-space: nowrap; scrollbar-width: thin; max-width: 960px; margin: 0 auto; }
+        .main-nav-tabs { display: flex; background: #fdfbf7; border-bottom: 1px solid var(--border); max-width: 960px; margin: 0 auto; }
+        .main-tab-btn { flex: 1; padding: 12px; text-align: center; font-weight: bold; font-size: 0.9rem; background: none; border: none; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .main-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #fff; }
+
+        .nav-tabs { display: flex; overflow-x: auto; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); gap: 0.5rem; white-space: nowrap; scrollbar-width: thin; max-width: 960px; margin: 0 auto; background: #fff; }
         .nav-tabs button { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; color: var(--text); transition: all 0.2s; }
         .nav-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
@@ -89,29 +93,31 @@
             </div>
         </header>
 
-        <div id="orderStatusBanner" class="max-w-[960px] mx-auto px-4 py-2 bg-white border-b border-gray-100 hidden">
-            <div class="bg-indigo-900 text-white rounded-xl shadow-md overflow-hidden transition-all">
-                <div onclick="toggleStatusDrawer()" class="p-3 flex justify-between items-center cursor-pointer bg-indigo-950/60 hover:bg-indigo-950 transition">
-                    <div class="flex items-center gap-2.5">
-                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                        <span class="font-bold text-xs tracking-wide">📦 Order Status</span>
-                        <span id="orderCountBadge" class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">0 active</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span id="latestStatusBadge" class="text-xs bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full">Received</span>
-                        <span id="statusChevron" class="text-xs font-bold transition-transform">▼</span>
-                    </div>
-                </div>
-                <div id="statusDrawerDetails" class="p-3 border-t border-indigo-800 space-y-2 hidden">
-                    <div id="statusTrackerItems" class="space-y-2"></div>
-                </div>
-            </div>
+        <!-- Main Section Toggle Tabs -->
+        <div class="main-nav-tabs">
+            <button onclick="switchMainTab('menu')" id="mainTabMenu" class="main-tab-btn active">📖 Menu & Ordering</button>
+            <button onclick="switchMainTab('status')" id="mainTabStatus" class="main-tab-btn">📦 Order Status <span id="headerOrderStatusCount" class="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full hidden">0</span></button>
         </div>
 
-        <div class="nav-tabs" id="categoryNav"></div>
+        <div id="categoryNavWrapper">
+            <div class="nav-tabs" id="categoryNav"></div>
+        </div>
     </div>
 
-    <div class="container" id="menuContainer"></div>
+    <!-- TAB 1: MENU VIEW -->
+    <div id="view-menu" class="container"></div>
+
+    <!-- TAB 2: ORDER STATUS VIEW -->
+    <div id="view-status" class="container hidden">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border max-w-xl mx-auto">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span>📋 Live Orders for Table</span> <span id="statusTableLabel" class="text-indigo-600">--</span>
+            </h2>
+            <div id="fullStatusTrackerContainer" class="space-y-4">
+                <p class="text-gray-400 italic text-sm">No active orders found.</p>
+            </div>
+        </div>
+    </div>
 
     <div class="cart-bar">
         <div id="activationWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium">
@@ -143,7 +149,6 @@
         let tableIsOpen = false;
         let isWaitingForActivation = false;
         let isCartOpen = false;
-        let isStatusDrawerOpen = false;
         let cart = {};
         let menuCategories = [];
         let itemLookup = {};
@@ -171,11 +176,23 @@
                 currentTable = localStorage.getItem('restaurant_table_number');
             }
             if (!currentTable) document.getElementById('tableModal').classList.remove('hidden');
-            else document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            else {
+                document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+                document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
+            }
             
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
             await loadRestaurantsList();
         };
+
+        function switchMainTab(tab) {
+            const isMenu = tab === 'menu';
+            document.getElementById('view-menu').classList.toggle('hidden', !isMenu);
+            document.getElementById('view-status').classList.toggle('hidden', isMenu);
+            document.getElementById('categoryNavWrapper').style.display = isMenu ? 'block' : 'none';
+            document.getElementById('mainTabMenu').classList.toggle('active', isMenu);
+            document.getElementById('mainTabStatus').classList.toggle('active', !isMenu);
+        }
 
         async function loadRestaurantsList() {
             const selector = document.getElementById('restaurantSelector');
@@ -303,24 +320,29 @@
             });
 
             const activeTableOrders = tableOrders.filter(o => o.kitchenStatus !== 'Sent to Table');
-            const banner = document.getElementById('orderStatusBanner');
-            const trackerContainer = document.getElementById('statusTrackerItems');
+            const countBadge = document.getElementById('headerOrderStatusCount');
             if (activeTableOrders.length > 0) {
-                banner.classList.remove('hidden');
-                document.getElementById('orderCountBadge').innerText = `${activeTableOrders.length} active`;
-                const latestOrder = activeTableOrders[activeTableOrders.length - 1];
-                document.getElementById('latestStatusBadge').innerText = latestOrder.kitchenStatus;
-                trackerContainer.innerHTML = activeTableOrders.map((ord, idx) => `
-                    <div class="flex justify-between items-center bg-indigo-800/60 p-2 rounded-lg text-xs">
-                        <div><span class="font-bold text-amber-300">Order #${idx + 1} (${ord.timestamp}):</span> <span class="text-indigo-100">${ord.items.map(i => `${i.qty}x${i.name}`).join(', ')}</span></div>
-                        <span class="bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full text-[10px]">${ord.kitchenStatus}</span>
+                countBadge.innerText = activeTableOrders.length;
+                countBadge.classList.remove('hidden');
+                
+                document.getElementById('fullStatusTrackerContainer').innerHTML = tableOrders.map((ord, idx) => `
+                    <div class="bg-gray-50 border p-4 rounded-xl space-y-2">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="font-bold text-indigo-600">Order #${idx + 1} (${ord.timestamp})</span>
+                            <span class="text-xs px-2.5 py-1 rounded-full font-bold ${ord.kitchenStatus === 'Ready' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${ord.kitchenStatus}</span>
+                        </div>
+                        <ul class="text-sm space-y-1">
+                            ${ord.items.map(i => `<li class="flex justify-between text-gray-700"><span>${i.qty}x ${i.name}</span><span class="font-semibold">$${(i.price * i.qty).toFixed(2)}</span></li>`).join('')}
+                        </ul>
+                        <div class="flex justify-between items-center pt-2 border-t text-xs font-bold text-gray-600">
+                            <span>Bill: ${ord.billStatus}</span>
+                            <span class="text-base text-indigo-600">Total: $${ord.total.toFixed(2)}</span>
+                        </div>
                     </div>
                 `).join('');
             } else {
-                banner.classList.add('hidden');
-                isStatusDrawerOpen = false;
-                document.getElementById('statusDrawerDetails').style.display = 'none';
-                document.getElementById('statusChevron').style.transform = 'rotate(0deg)';
+                countBadge.classList.add('hidden');
+                document.getElementById('fullStatusTrackerContainer').innerHTML = `<p class="text-gray-400 italic text-sm text-center py-6">No active or pending orders for this table.</p>`;
             }
         }
 
@@ -333,17 +355,13 @@
             currentTable = document.getElementById('tableSelect').value;
             localStorage.setItem('restaurant_table_number', currentTable);
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
             document.getElementById('tableModal').classList.add('hidden');
             activationSound.play().catch(e => console.log('Audio unlock error:', e));
             evaluateTableState();
         }
 
         function changeTable() { document.getElementById('tableModal').classList.remove('hidden'); }
-        function toggleStatusDrawer() {
-            isStatusDrawerOpen = !isStatusDrawerOpen;
-            document.getElementById('statusDrawerDetails').style.display = isStatusDrawerOpen ? 'block' : 'none';
-            document.getElementById('statusChevron').style.transform = isStatusDrawerOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-        }
 
         function toggleLanguage() {
             currentLang = currentLang === 'en' ? 'ar' : 'en';
@@ -407,8 +425,8 @@
             }
         }
 
-function renderMenu() {
-            const container = document.getElementById('menuContainer');
+        function renderMenu() {
+            const container = document.getElementById('view-menu');
             const nav = document.getElementById('categoryNav');
             const t = i18n[currentLang];
             nav.innerHTML = ''; container.innerHTML = '';
@@ -424,10 +442,6 @@ function renderMenu() {
                 };
                 nav.appendChild(tab);
 
-                const secDiv = document.createElement('div');
-                secDiv.id = 'sec-' + idx;
-                secDiv.classList.add('menu-section');
-                
                 let itemsHtml = '';
                 if (sec.items && Array.isArray(sec.items)) {
                     itemsHtml = sec.items.map(item => {
@@ -452,6 +466,9 @@ function renderMenu() {
                     }).join('');
                 }
 
+                const secDiv = document.createElement('div');
+                secDiv.id = 'sec-' + idx;
+                secDiv.classList.add('menu-section');
                 secDiv.innerHTML = `<div class="section-title"><span>${catName}</span></div><div class="grid">${itemsHtml}</div>`;
                 container.appendChild(secDiv);
             });
@@ -480,6 +497,7 @@ function renderMenu() {
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
                     showModal('Success!', 'Order sent successfully to the kitchen!', '🚀');
                     updateCartUI(); renderMenu();
+                    switchMainTab('status'); // Automatically switch customer to Order Status tab after placing order
                 } else { showModal('Notice', res.message, '⚠️'); }
             });
         }
