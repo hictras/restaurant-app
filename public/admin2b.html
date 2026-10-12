@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin Panel - Restaurant Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-6">
+    <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 max-w-6xl mx-auto">
+        <h1 class="text-2xl font-bold flex items-center gap-2">⚙️ Admin Control Panel <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-700">
+                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Restaurant:</span>
+                <select id="adminRestaurantSelector" class="bg-transparent text-amber-400 font-bold text-sm focus:outline-none cursor-pointer" onchange="switchAdminRestaurant(this.value)"></select>
+            </div>
+            <a href="kitchen.html" class="text-xs bg-amber-500 px-3 py-2 rounded-xl font-semibold hover:bg-amber-600 transition">Kitchen Display 🍳</a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto space-y-10">
+        <!-- Tables Management Section -->
+        <section class="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-xl font-bold mb-4 text-amber-400">Tables Management</h2>
+            <div id="tablesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+        </section>
+
+        <!-- Live Orders Overview Section -->
+        <section class="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-xl font-bold mb-4 text-amber-400">Live Orders Overview</h2>
+            <div id="adminOrdersContainer" class="space-y-4">
+                <p class="text-gray-400 italic">No orders recorded yet.</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const socket = io();
+        let currentAdminResto = '';
+        let serverState = { tables: {}, tableRequests: {}, orders: [] };
+
+        window.onload = async () => {
+            await loadAdminRestaurants();
+        };
+
+        async function loadAdminRestaurants() {
+            try {
+                const res = await fetch('/api/restaurants');
+                const restaurants = await res.json();
+                const selector = document.getElementById('adminRestaurantSelector');
+                selector.innerHTML = '';
+                restaurants.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r; opt.textContent = r;
+                    selector.appendChild(opt);
+                });
+                if (restaurants.length > 0) {
+                    currentAdminResto = restaurants[0];
+                    selector.value = currentAdminResto;
+                }
+                renderAdminView();
+            } catch (e) { console.error('Failed to load restaurants', e); }
+        }
+
+        function switchAdminRestaurant(val) {
+            currentAdminResto = val;
+            renderAdminView();
+        }
+
+        socket.on('connect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block"; });
+        socket.on('disconnect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-red-500 inline-block"; });
+
+        socket.on('state_update', (data) => {
+            serverState = data;
+            renderAdminView();
+        });
+
+        function renderAdminView() {
+            const tablesGrid = document.getElementById('tablesGrid');
+            const restoTables = (serverState.tables && serverState.tables[currentAdminResto]) || {};
+            const restoRequests = (serverState.tableRequests && serverState.tableRequests[currentAdminResto]) || {};
+
+            let tablesHtml = '';
+            for (let i = 1; i <= 6; i++) {
+                const tNum = String(i);
+                const tData = restoTables[tNum] || { isOpen: false, canOrder: false, status: 'Valid' };
+                const hasBell = restoRequests[tNum];
+
+                const menuBtnColor = tData.isOpen ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-600 hover:bg-gray-700';
+                const menuBtnText = tData.isOpen ? '🔓 Menu Open' : '🔒 Menu Closed';
+
+                const orderBtnColor = tData.canOrder ? 'bg-amber-600 hover:bg-amber-700' : 'bg-red-600 hover:bg-red-700';
+                const orderBtnText = tData.canOrder ? '🟢 Order Unlocked' : '🔴 Order Locked';
+
+                tablesHtml += `
+                    <div class="bg-gray-700/50 border border-gray-600 rounded-xl p-4 flex flex-col justify-between ${hasBell ? 'ring-2 ring-amber-400 animate-pulse' : ''}">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-bold text-lg text-amber-300">Table #${i}</span>
+                            <span class="text-xs px-2 py-0.5 rounded font-bold ${tData.status === 'Occupied' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-600 text-gray-300'}">${tData.status}</span>
+                        </div>
+                        ${hasBell ? '<div class="text-xs text-amber-400 font-semibold mb-2">🔔 Customer Ringing Bell!</div>' : ''}
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button onclick="socket.emit('toggle_table', { restaurant: '${currentAdminResto}', tableNum: '${tNum}' })" class="text-xs py-2 rounded text-white font-bold transition ${menuBtnColor}">
+                                ${menuBtnText}
+                            </button>
+                            <button onclick="socket.emit('toggle_order_permission', { restaurant: '${currentAdminResto}', tableNum: '${tNum}' })" class="text-xs py-2 rounded text-white font-bold transition ${orderBtnColor}">
+                                ${orderBtnText}
+                            </button>
+                        </div>
+                        <button onclick="socket.emit('clear_table_orders', { restaurant: '${currentAdminResto}', tableNumber: '${tNum}' })" class="mt-2 text-xs bg-red-500/20 text-red-300 hover:bg-red-500/30 py-1.5 rounded font-semibold transition">
+                            Clear Table & Close Bill 🗑️
+                        </button>
+                    </div>`;
+            }
+            tablesGrid.innerHTML = tablesHtml;
+
+            const adminOrdersContainer = document.getElementById('adminOrdersContainer');
+            const restoOrders = (serverState.orders || []).filter(o => !o.restaurant || o.restaurant === currentAdminResto);
+
+            if (restoOrders.length === 0) {
+                adminOrdersContainer.innerHTML = `<p class="text-gray-400 italic">No orders recorded for ${currentAdminResto}.</p>`;
+                return;
+            }
+
+            adminOrdersContainer.innerHTML = restoOrders.map(o => `
+                <div class="bg-gray-700/40 border border-gray-600 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-3 mb-1">
+                            <span class="font-bold text-amber-400 text-lg">Table #${o.tableNumber}</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold">${o.kitchenStatus}</span>
+                            <span class="text-xs px-2 py-0.5 rounded font-semibold ${o.billStatus === 'Paid' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">Bill: ${o.billStatus}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-2">Order ID: ${o.orderId.substring(0,8)}... | Time: ${o.timestamp}</p>
+                        <ul class="text-sm space-y-1">
+                            ${o.items.map(i => `<li class="text-gray-300"><span class="font-semibold text-white">${i.qty}x</span>${i.name}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="flex flex-col gap-2 items-end w-full sm:w-auto">
+                        <span class="font-bold text-lg text-emerald-400">$${o.total.toFixed(2)}</span>
+                        <div class="flex gap-2">
+                            <button onclick="socket.emit('update_bill_status', { orderId: '${o.orderId}', billStatus: '${o.billStatus === 'Paid' ? 'Unpaid' : 'Paid'}' })" class="text-xs px-3 py-1.5 rounded font-bold ${o.billStatus === 'Paid' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'} transition">
+                                ${o.billStatus === 'Paid' ? 'Mark Unpaid' : 'Mark Paid 💵'}
+                            </button>
+                        </div>
+                    </div>
+                </div>`).join('');
+        }
+    </script>
+</body>
+</html>

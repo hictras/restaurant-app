@@ -19,6 +19,9 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", Tahoma, sans-serif; }
         body { background-color: var(--bg); color: var(--text); padding-bottom: 140px; }
 
+        /* Force strict hiding when .hidden class is toggled */
+        .hidden { display: none !important; }
+
         .sticky-top-wrapper { position: sticky; top: 0; z-index: 50; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
         header { border-bottom: 1px solid var(--border); padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; max-width: 960px; margin: 0 auto; }
         .header-titles { text-align: left; }
@@ -104,13 +107,6 @@
         </div>
     </div>
 
-    <!-- TABLE NOT OPEN MESSAGE BANNER -->
-    <div id="tableClosedBanner" class="hidden max-w-lg mx-auto my-24 bg-white p-8 rounded-2xl shadow-xl text-center border border-amber-200">
-        <div class="text-4xl mb-3">⏳</div>
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Table is not open for order</h2>
-        <p class="text-sm text-gray-600">Please inform your waiter to activate your table.</p>
-    </div>
-
     <!-- TAB 1: MENU VIEW -->
     <div id="view-menu" class="container"></div>
 
@@ -126,9 +122,9 @@
         </div>
     </div>
 
-    <div id="cartBarContainer" class="cart-bar">
-        <div id="orderPermissionWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium text-center">
-            ⏳ Waiting for manager to unlock the order button.
+    <div class="cart-bar">
+        <div id="activationWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium">
+            ⏳ Order button is locked. Ring the bell below when ready to order.
         </div>
         <div onclick="toggleCartDrawer()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -154,7 +150,8 @@
         let currentLang = 'en';
         let currentTable = null;
         let tableIsOpen = false;
-        let tableCanOrder = false;
+        let canOrder = false;
+        let isWaitingForOrderPermission = false;
         let isCartOpen = false;
         let cart = {};
         let menuCategories = [];
@@ -165,8 +162,8 @@
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
         const i18n = {
-            en: { brandSubtitle: "Prices in USD (Includes VAT & Service)", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀", waitingOrder: "Waiting for Manager ⏳" },
-            ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", waitingOrder: "في انتظار المدير ⏳" }
+            en: { brandSubtitle: "Prices in USD (Includes VAT & Service)", langBtnText: "عربي", viewList: "🛒 View Order List", items: "items", add: "+ Add", emptyCart: "Your list is empty.", sendOrder: "Send Order 🚀", notifyManager: "Ring Bell & Request Order Approval 🛎️", waitingOrderPermission: "⏳ Waiting for Manager Order Approval..." },
+            ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "طلب إذن إرسال الطلب من المدير 🛎️", waitingOrderPermission: "⏳ في انتظار تفعيل زر الطلب من المدير..." }
         };
 
         window.onload = async () => {
@@ -177,7 +174,7 @@
                 if (searchStr.startsWith('tbl')) extractedTable = searchStr.replace('tbl', '');
             }
             if (extractedTable) {
-                currentTable = extractedTable;
+                currentTable = String(extractedTable);
                 localStorage.setItem('restaurant_table_number', currentTable);
             } else {
                 currentTable = localStorage.getItem('restaurant_table_number');
@@ -194,11 +191,14 @@
 
         function switchMainTab(tab) {
             const isMenu = tab === 'menu';
-            document.getElementById('view-menu').classList.toggle('hidden', !isMenu);
-            document.getElementById('view-status').classList.toggle('hidden', isMenu);
-            document.getElementById('categoryNavWrapper').style.display = isMenu ? 'block' : 'none';
+            
             document.getElementById('mainTabMenu').classList.toggle('active', isMenu);
             document.getElementById('mainTabStatus').classList.toggle('active', !isMenu);
+            document.getElementById('view-status').classList.toggle('hidden', isMenu);
+
+            const showMenu = tableIsOpen && isMenu;
+            document.getElementById('view-menu').classList.toggle('hidden', !showMenu);
+            document.getElementById('categoryNavWrapper').style.display = showMenu ? 'block' : 'none';
         }
 
         async function loadRestaurantsList() {
@@ -241,6 +241,7 @@
         async function switchRestaurant(restaurantName) {
             currentRestaurant = restaurantName;
             cart = {};
+            isWaitingForOrderPermission = false;
             updateCartUI();
             await loadMenuFromServer(restaurantName);
             evaluateTableState();
@@ -249,21 +250,15 @@
         async function loadMenuFromServer(restaurantName) {
             try {
                 const res = await fetch(`/api/menu/${restaurantName}`);
-                const data = await res.json();
-                menuCategories = Array.isArray(data) ? data : (data.menu || []);
+                menuCategories = await res.json();
                 rebuildLookup();
                 renderMenu();
-            } catch(e) { 
-                console.error('Failed to load menu', e);
-                menuCategories = [];
-                rebuildLookup();
-                renderMenu();
-            }
+            } catch(e) { console.error('Failed to load menu', e); }
         }
 
         socket.on('menu_updated', (data) => {
             if (data && data.restaurant === currentRestaurant) {
-                menuCategories = Array.isArray(data.menu) ? data.menu : [];
+                menuCategories = data.menu;
                 rebuildLookup();
                 renderMenu();
             }
@@ -303,35 +298,71 @@
             const restoTable = restoTables[currentTable] || { isOpen: false, canOrder: false, status: 'Valid' };
             
             const wasTableOpen = tableIsOpen;
+            const wasCanOrder = canOrder;
+
             tableIsOpen = !!restoTable.isOpen;
-            tableCanOrder = !!restoTable.canOrder;
+            canOrder = !!restoTable.canOrder;
             
             if (!wasTableOpen && tableIsOpen) {
                 activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
-                showModal('Table Activated!', 'Your table has been opened by the manager. You can now browse the menu.', '🎉');
+                showModal('Table Menu Activated!', 'The manager has activated your table menu. You can browse and add items!', '🎉');
             }
 
-            const closedBanner = document.getElementById('tableClosedBanner');
+            if (!wasCanOrder && canOrder) {
+                activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
+                isWaitingForOrderPermission = false;
+                showModal('Order Approved! 🚀', 'The manager has unlocked your order button. You can now send your order!', '🚀');
+            }
+            
+            const restoRequests = (data.tableRequests && data.tableRequests[currentRestaurant]) || {};
+            if (restoRequests[currentTable]) {
+                isWaitingForOrderPermission = true;
+            } else if (canOrder) {
+                isWaitingForOrderPermission = false;
+            }
+
             const menuContainer = document.getElementById('view-menu');
-            const categoryNav = document.getElementById('categoryNavWrapper');
-            const cartBar = document.getElementById('cartBarContainer');
+            const categoryNavWrapper = document.getElementById('categoryNavWrapper');
+            let lockedNotice = document.getElementById('tableLockedNotice');
+
+            const isMenuTabActive = document.getElementById('mainTabMenu').classList.contains('active');
 
             if (!tableIsOpen) {
-                closedBanner.classList.remove('hidden');
+                if (!lockedNotice) {
+                    lockedNotice = document.createElement('div');
+                    lockedNotice.id = 'tableLockedNotice';
+                    lockedNotice.className = 'bg-white border border-amber-200 rounded-2xl p-8 text-center max-w-md mx-auto mt-12 shadow-xl';
+                    menuContainer.parentNode.insertBefore(lockedNotice, menuContainer);
+                }
+                lockedNotice.innerHTML = `
+                    <div class="text-5xl mb-3">⏳</div>
+                    <h2 class="text-xl font-bold text-gray-800 mb-2">Table Not Active</h2>
+                    <p class="text-sm text-gray-600 mb-6">Your table is currently locked. Please wait for the manager to activate your table.</p>
+                `;
+                lockedNotice.style.display = 'block';
                 menuContainer.classList.add('hidden');
-                categoryNav.style.display = 'none';
-                cartBar.style.display = 'none';
+                if (categoryNavWrapper) categoryNavWrapper.style.display = 'none';
             } else {
-                closedBanner.classList.add('hidden');
-                menuContainer.classList.remove('hidden');
-                categoryNav.style.display = 'block';
-                cartBar.style.display = 'block';
+                if (lockedNotice) lockedNotice.style.display = 'none';
+                
+                // CONDITIONAL CHECK: Menu shows ONLY if tableIsOpen (true) AND isMenuTabActive (true)
+                if (tableIsOpen && isMenuTabActive) {
+                    menuContainer.classList.remove('hidden');
+                    if (categoryNavWrapper) categoryNavWrapper.style.display = 'block';
+                } else {
+                    menuContainer.classList.add('hidden');
+                    if (categoryNavWrapper) categoryNavWrapper.style.display = 'none';
+                }
             }
 
-            document.getElementById('orderPermissionWarning').classList.toggle('hidden', tableCanOrder);
+            document.getElementById('activationWarning').classList.toggle('hidden', canOrder || isWaitingForOrderPermission || !tableIsOpen);
             updateCartUI();
 
-            const tableOrders = (data.orders || []).filter(o => (o.restaurant || 'Default') === currentRestaurant && String(o.tableNumber) === String(currentTable));
+            const tableOrders = (data.orders || []).filter(o => {
+                const matchesResto = (o.restaurant || 'Default') === currentRestaurant;
+                const matchesTable = String(o.tableNumber) === String(currentTable);
+                return matchesResto && matchesTable;
+            });
             
             tableOrders.forEach(ord => {
                 if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
@@ -342,30 +373,26 @@
                 }
             });
 
-            const activeTableOrders = tableOrders;
             const countBadge = document.getElementById('headerOrderStatusCount');
-            
-            if (activeTableOrders.length > 0) {
-                countBadge.innerText = activeTableOrders.length;
+            if (tableOrders.length > 0) {
+                countBadge.innerText = tableOrders.length;
                 countBadge.classList.remove('hidden');
                 
                 document.getElementById('fullStatusTrackerContainer').innerHTML = tableOrders.map((ord, idx) => `
                     <div class="bg-gray-50 border p-4 rounded-xl space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
-                            <span class="font-bold text-indigo-600">Order #${idx + 1} (${ord.timestamp})</span>
+                            <span class="font-bold text-indigo-600">Order #${idx + 1} (${ord.timestamp || ''})</span>
                             <span class="text-xs px-2.5 py-1 rounded-full font-bold ${ord.kitchenStatus === 'Ready' || ord.kitchenStatus === 'Sent to Table' ? 'bg-emerald-100 text-emerald-700' : ord.kitchenStatus === 'Cooking' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">${ord.kitchenStatus}</span>
                         </div>
                         <ul class="text-sm space-y-2">
-                            ${ord.items.map(i => {
+                            ${(ord.items || []).map(i => {
                                 const check1 = i.checks && i.checks[0] ? '🔥 Cooking' : '';
                                 const check2 = i.checks && i.checks[1] ? '✅ Ready' : '';
                                 const statusLabel = ord.kitchenStatus === 'Sent to Table' ? '🚀 Delivered' : (check2 || check1 || '⏳ Pending');
                                 const statusBg = ord.kitchenStatus === 'Sent to Table' || check2 ? 'bg-emerald-50 text-emerald-600' : check1 ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500';
                                 return `
                                 <li class="flex justify-between items-center bg-white p-2 rounded border text-gray-700">
-                                    <div>
-                                        <span class="font-bold">${i.qty}x</span>${i.name}
-                                    </div>
+                                    <div><span class="font-bold">${i.qty}x</span>${i.name}</div>
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <span class="${statusBg} px-2 py-0.5 rounded">${statusLabel}</span>
                                     </div>
@@ -374,7 +401,7 @@
                         </ul>
                         <div class="flex justify-between items-center pt-2 border-t text-xs font-bold text-gray-600">
                             <span>Bill Status: <span class="${ord.billStatus === 'Paid' ? 'text-emerald-600' : 'text-amber-600'}">${ord.billStatus}</span></span>
-                            <span class="text-base text-indigo-600">Total: $${ord.total.toFixed(2)}</span>
+                            <span class="text-base text-indigo-600">Total: $${(ord.total || 0).toFixed(2)}</span>
                         </div>
                     </div>
                 `).join('');
@@ -384,19 +411,20 @@
             }
         }
 
+        function requestOrderApproval() {
+            socket.emit('table_request', { restaurant: currentRestaurant, tableNumber: currentTable });
+            isWaitingForOrderPermission = true;
+            updateCartUI();
+            showModal('Bell Rung! 🛎️', 'Notification sent to the manager to approve your order submission.', '🛎️');
+        }
+
         function rebuildLookup() {
             itemLookup = {};
-            if (Array.isArray(menuCategories)) {
-                menuCategories.forEach(cat => {
-                    if (cat.items && Array.isArray(cat.items)) {
-                        cat.items.forEach(item => itemLookup[item.id] = item);
-                    }
-                });
-            }
+            menuCategories.forEach(cat => cat.items.forEach(item => itemLookup[item.id] = item));
         }
 
         function saveTableSelection() {
-            currentTable = document.getElementById('tableSelect').value;
+            currentTable = String(document.getElementById('tableSelect').value);
             localStorage.setItem('restaurant_table_number', currentTable);
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
@@ -458,18 +486,14 @@
             }
             document.getElementById('barTotal').innerText = '$' + total.toFixed(2);
             document.getElementById('itemCountBadge').innerText = `${count} ${t.items}`;
-            
             const sendBtn = document.getElementById('sendOrderBtn');
-            if (!tableCanOrder) {
-                sendBtn.disabled = true;
-                sendBtn.innerText = t.waitingOrder;
-                sendBtn.style.background = '#64748b';
-                sendBtn.style.cursor = 'not-allowed';
+            sendBtn.disabled = count === 0;
+            if (canOrder) {
+                sendBtn.innerText = t.sendOrder; sendBtn.style.background = 'var(--primary)'; sendBtn.style.cursor = 'pointer';
+            } else if (isWaitingForOrderPermission) {
+                sendBtn.innerText = t.waitingOrderPermission; sendBtn.style.background = '#64748b'; sendBtn.style.cursor = 'not-allowed';
             } else {
-                sendBtn.disabled = count === 0;
-                sendBtn.innerText = t.sendOrder;
-                sendBtn.style.background = 'var(--primary)';
-                sendBtn.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+                sendBtn.innerText = t.notifyManager; sendBtn.style.background = '#f59e0b'; sendBtn.style.cursor = 'pointer';
             }
         }
 
@@ -478,9 +502,6 @@
             const nav = document.getElementById('categoryNav');
             const t = i18n[currentLang];
             nav.innerHTML = ''; container.innerHTML = '';
-            
-            if (!Array.isArray(menuCategories)) return;
-
             menuCategories.forEach((sec, idx) => {
                 const catName = currentLang === 'ar' ? sec.categoryAr : sec.categoryEn;
                 const tab = document.createElement('button');
@@ -526,7 +547,10 @@
         }
 
         function sendOrder() {
-            if (!tableCanOrder) return;
+            if (!canOrder) {
+                requestOrderApproval();
+                return;
+            }
             let total = 0, orderItems = [];
             Object.keys(cart).forEach(id => {
                 const item = itemLookup[id];
@@ -536,10 +560,10 @@
             });
             socket.emit('place_order', { tableNumber: currentTable, restaurant: currentRestaurant, items: orderItems, total }, (res) => {
                 if (res.success) {
-                    cart = {}; isCartOpen = false;
+                    cart = {}; isCartOpen = false; isWaitingForOrderPermission = false;
                     document.getElementById('cartDetails').style.display = 'none';
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
-                    showModal('Success!', 'Order sent successfully to the kitchen! Order button locked for next round.', '🚀');
+                    showModal('Success!', 'Order sent successfully to the kitchen!', '🚀');
                     updateCartUI(); renderMenu();
                     switchMainTab('status');
                 } else { showModal('Notice', res.message, '⚠️'); }

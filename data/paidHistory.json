@@ -254,5 +254,79 @@
         "billStatus": "Paid",
         "date": "2026-10-09",
         "timestamp": "1:51:49 PM"
+    },
+    {
+        "orderId": "99420bd6-25df-4912-b102-2d7c25199c98",
+        "tableNumber": "1",
+        "restaurant": "KunLebnene",
+        "items": [
+            {
+                "id": "artichoke_salad",
+                "name": "Artichoke Salad",
+                "price": 15,
+                "qty": 1,
+                "checks": [
+                    false,
+                    true
+                ]
+            },
+            {
+                "id": "mixed_green_confit",
+                "name": "Mixed Green Confit",
+                "price": 16,
+                "qty": 1,
+                "checks": [
+                    false,
+                    true
+                ]
+            },
+            {
+                "id": "potato_salad",
+                "name": "Potato Salad",
+                "price": 10,
+                "qty": 1,
+                "checks": [
+                    false,
+                    true
+                ]
+            }
+        ],
+        "total": 41,
+        "kitchenStatus": "Sent to Table",
+        "billStatus": "Paid",
+        "date": "2026-10-12",
+        "timestamp": "2:38:26 PM"
+    },
+    {
+        "orderId": "8d63fba3-0e1f-4555-afd6-722593d58767",
+        "tableNumber": "1",
+        "restaurant": "KunLebnene",
+        "items": [
+            {
+                "id": "mixed_green_confit",
+                "name": "Mixed Green Confit",
+                "price": 16,
+                "qty": 1,
+                "checks": [
+                    false,
+                    true
+                ]
+            },
+            {
+                "id": "fattouch",
+                "name": "Fattouch",
+                "price": 10,
+                "qty": 1,
+                "checks": [
+                    false,
+                    true
+                ]
+            }
+        ],
+        "total": 26,
+        "kitchenStatus": "Sent to Table",
+        "billStatus": "Paid",
+        "date": "2026-10-12",
+        "timestamp": "2:59:11 PM"
     }
 ]

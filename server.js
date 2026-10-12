@@ -1,162 +1,136 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Explicit HTML routes pointing to the 'public' folder
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'customer.html'));
 });
 
-app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-app.get('/customer.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'customer.html'));
-});
-
-app.get('/kitchen.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'kitchen.html'));
-});
-
 const dataDir = path.join(__dirname, 'data');
-const restaurantsDir = path.join(__dirname, 'restaurants');
-const publicRestaurantsDir = path.join(__dirname, 'public', 'restaurants');
-
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+
+const restaurantsDir = path.join(__dirname, 'restaurants');
 if (!fs.existsSync(restaurantsDir)) fs.mkdirSync(restaurantsDir);
 
 const tablesFilePath = path.join(dataDir, 'tables.json');
+const requestsFilePath = path.join(dataDir, 'requests.json');
 const ordersFilePath = path.join(dataDir, 'orders.json');
-const tableRequestsFilePath = path.join(dataDir, 'tableRequests.json');
+const paidHistoryFilePath = path.join(dataDir, 'paidHistory.json');
 
-function loadJSON(filePath, defaultVal) {
+function loadJSON(filePath, defaultValue) {
     try {
         if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            const data = fs.readFileSync(filePath, 'utf8');
+            if (!data.trim()) return defaultValue;
+            return JSON.parse(data);
         }
-    } catch (e) { console.error(`Error loading ${filePath}:`, e); }
-    return defaultVal;
+    } catch (e) { console.error(`Error reading ${filePath}:`, e.message); }
+    return defaultValue;
 }
 
 function saveJSON(filePath, data) {
     try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-    } catch (e) { console.error(`Error saving ${filePath}:`, e); }
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 4), 'utf8');
+    } catch (e) { console.error(`Error writing ${filePath}:`, e); }
 }
 
-let tables = loadJSON(tablesFilePath, {}); 
+function getDefaultTables() {
+    return {
+        1: { isOpen: false, canOrder: false, status: 'Valid' },
+        2: { isOpen: false, canOrder: false, status: 'Valid' },
+        3: { isOpen: false, canOrder: false, status: 'Valid' },
+        4: { isOpen: false, canOrder: false, status: 'Valid' },
+        5: { isOpen: false, canOrder: false, status: 'Valid' },
+        6: { isOpen: false, canOrder: false, status: 'Valid' }
+    };
+}
+
+let tables = loadJSON(tablesFilePath, {});
+let tableRequests = loadJSON(requestsFilePath, {});
 let orders = loadJSON(ordersFilePath, []);
-let tableRequests = loadJSON(tableRequestsFilePath, {});
+let paidOrderHistory = loadJSON(paidHistoryFilePath, []);
 
-function getRestaurantsList() {
-    try {
-        let list = [];
-        if (fs.existsSync(restaurantsDir)) {
-            const dirs = fs.readdirSync(restaurantsDir).filter(f => fs.statSync(path.join(restaurantsDir, f)).isDirectory());
-            list.push(...dirs);
-        }
-        if (fs.existsSync(publicRestaurantsDir)) {
-            const dirs = fs.readdirSync(publicRestaurantsDir).filter(f => fs.statSync(path.join(publicRestaurantsDir, f)).isDirectory());
-            list.push(...dirs);
-        }
-        const uniqueList = [...new Set(list)];
-        if (uniqueList.length > 0) return uniqueList;
-    } catch (e) { console.error('Error reading restaurants directory', e); }
-    return ['Default'];
-}
-
-function ensureRestaurantTables(restaurant) {
-    if (!tables[restaurant]) {
-        tables[restaurant] = {};
-        for (let i = 1; i <= 10; i++) {
-            tables[restaurant][String(i)] = { isOpen: false, canOrder: false, status: 'Valid' };
-        }
+function ensureRestaurantTables(restaurantName) {
+    if (!tables[restaurantName]) {
+        tables[restaurantName] = getDefaultTables();
         saveJSON(tablesFilePath, tables);
     }
+    if (!tableRequests[restaurantName]) {
+        tableRequests[restaurantName] = {};
+    }
 }
-
-getRestaurantsList().forEach(resto => ensureRestaurantTables(resto));
 
 function syncTableStatuses() {
-    orders.forEach(ord => {
-        const resto = ord.restaurant || 'Default';
-        ensureRestaurantTables(resto);
-        const tKey = String(ord.tableNumber);
-        if (tables[resto] && tables[resto][tKey]) {
-            if (ord.billStatus === 'Unpaid') {
-                tables[resto][tKey].status = 'Occupied';
+    let changed = false;
+    for (let resto in tables) {
+        const activeTablesWithUnpaidBills = new Set(
+            orders.filter(o => (o.restaurant || 'Default') === resto && o.billStatus !== 'Paid').map(o => String(o.tableNumber))
+        );
+        for (let tNum in tables[resto]) {
+            if (activeTablesWithUnpaidBills.has(tNum) && tables[resto][tNum].status !== 'Occupied') {
+                tables[resto][tNum].status = 'Occupied';
+                changed = true;
+            } else if (!activeTablesWithUnpaidBills.has(tNum) && tables[resto][tNum].status === 'Occupied') {
+                tables[resto][tNum].status = 'Valid';
+                changed = true;
             }
         }
-    });
-}
-syncTableStatuses();
-
-app.get('/api/restaurants', (req, res) => {
-    res.json(getRestaurantsList());
-});
-
-app.get('/api/menu/:restaurant', (req, res) => {
-    const restaurant = req.params.restaurant;
-    const menuPath = path.join(restaurantsDir, restaurant, 'menu.json');
-    const publicMenuPath = path.join(publicRestaurantsDir, restaurant, 'menu.json');
-    
-    if (fs.existsSync(menuPath)) {
-        res.json(loadJSON(menuPath, []));
-    } else if (fs.existsSync(publicMenuPath)) {
-        res.json(loadJSON(publicMenuPath, []));
-    } else {
-        res.json([
-            {
-                categoryEn: "Main Menu",
-                categoryAr: "القائمة الرئيسية",
-                items: [
-                    { id: "item_1", nameEn: "Sample Item", nameAr: "عنصر تجريبي", price: 10.00, descEn: "Please add your menu.json", descAr: "يرجى إضافة القائمة" }
-                ]
-            }
-        ]);
     }
-});
+    if (changed) saveJSON(tablesFilePath, tables);
+}
 
 io.on('connection', (socket) => {
     socket.emit('state_update', { tables, tableRequests, orders });
 
-    socket.on('table_request', ({ restaurant, tableNumber }) => {
-        const resto = restaurant || 'Default';
-        if (!tableRequests[resto]) tableRequests[resto] = {};
-        tableRequests[resto][String(tableNumber)] = true;
-        saveJSON(tableRequestsFilePath, tableRequests);
-        io.emit('state_update', { tables, tableRequests, orders });
-    });
-
+    // 1st Button: Toggle Table Menu Opening/Closing
     socket.on('toggle_table', ({ restaurant, tableNum }) => {
         const resto = restaurant || 'Default';
         ensureRestaurantTables(resto);
         const tKey = String(tableNum);
         if (tables[resto] && tables[resto][tKey]) {
             tables[resto][tKey].isOpen = !tables[resto][tKey].isOpen;
+            if (!tables[resto][tKey].isOpen) {
+                tables[resto][tKey].canOrder = false; // Close order permission if table menu is closed
+            }
             saveJSON(tablesFilePath, tables);
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
+    // 2nd Button: Toggle Order Permission (Open/Lock Order Button)
     socket.on('toggle_order_permission', ({ restaurant, tableNum }) => {
         const resto = restaurant || 'Default';
         ensureRestaurantTables(resto);
         const tKey = String(tableNum);
         if (tables[resto] && tables[resto][tKey]) {
             tables[resto][tKey].canOrder = !tables[resto][tKey].canOrder;
+            if (tables[resto][tKey].canOrder && tableRequests[resto]) {
+                delete tableRequests[resto][tKey]; // Clear bell request when order button is approved
+            }
             saveJSON(tablesFilePath, tables);
+            saveJSON(requestsFilePath, tableRequests);
+            io.emit('state_update', { tables, tableRequests, orders });
+        }
+    });
+
+    socket.on('table_request', ({ restaurant, tableNumber }) => {
+        const resto = restaurant || 'Default';
+        ensureRestaurantTables(resto);
+        if (tableNumber) {
+            if (!tableRequests[resto]) tableRequests[resto] = {};
+            tableRequests[resto][String(tableNumber)] = true;
+            saveJSON(requestsFilePath, tableRequests);
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
@@ -165,11 +139,11 @@ io.on('connection', (socket) => {
         const resto = restaurant || 'Default';
         ensureRestaurantTables(resto);
         const tKey = String(tableNumber);
-
-        if (!tables[resto][tKey] || !tables[resto][tKey].canOrder) {
-            return callback({ success: false, message: 'Ordering is currently locked by the admin for this table.' });
+        
+        if (!tables[resto][tKey] || !tables[resto][tKey].isOpen || !tables[resto][tKey].canOrder) {
+            return callback({ success: false, message: 'Order submission is locked by the manager.' });
         }
-
+        
         const newOrder = {
             orderId: uuidv4(),
             tableNumber: tKey,
@@ -181,9 +155,9 @@ io.on('connection', (socket) => {
             date: new Date().toISOString().split('T')[0],
             timestamp: new Date().toLocaleTimeString()
         };
-
+        
         orders.push(newOrder);
-        tables[resto][tKey].canOrder = false; // Lock order button again for next round
+        tables[resto][tKey].canOrder = false; // Lock order button again after order is successfully sent
         saveJSON(ordersFilePath, orders);
         saveJSON(tablesFilePath, tables);
         syncTableStatuses();
@@ -192,65 +166,149 @@ io.on('connection', (socket) => {
     });
 
     socket.on('update_kitchen_status', ({ orderId, kitchenStatus }) => {
-        const ord = orders.find(o => o.orderId === orderId);
-        if (ord) {
-            ord.kitchenStatus = kitchenStatus;
+        const order = orders.find(o => o.orderId === orderId);
+        if (order && kitchenStatus) {
+            order.kitchenStatus = kitchenStatus;
             saveJSON(ordersFilePath, orders);
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
     socket.on('toggle_item_check', ({ orderId, itemIndex, checkIndex }) => {
-        const ord = orders.find(o => o.orderId === orderId);
-        if (ord && ord.items && ord.items[itemIndex]) {
-            if (!ord.items[itemIndex].checks) ord.items[itemIndex].checks = [false, false];
-            if (checkIndex === 0) {
-                ord.items[itemIndex].checks[0] = !ord.items[itemIndex].checks[0];
-                if (ord.items[itemIndex].checks[0]) ord.items[itemIndex].checks[1] = false;
-            } else if (checkIndex === 1) {
-                ord.items[itemIndex].checks[1] = !ord.items[itemIndex].checks[1];
-                if (ord.items[itemIndex].checks[1]) ord.items[itemIndex].checks[0] = false;
-            }
+        const order = orders.find(o => o.orderId === orderId);
+        if (order && order.items[itemIndex]) {
+            if (!order.items[itemIndex].checks) order.items[itemIndex].checks = [false, false];
+            order.items[itemIndex].checks[checkIndex] = !order.items[itemIndex].checks[checkIndex];
             saveJSON(ordersFilePath, orders);
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
     socket.on('update_bill_status', ({ orderId, billStatus }) => {
-        const ord = orders.find(o => o.orderId === orderId);
-        if (ord) {
-            ord.billStatus = billStatus;
+        const order = orders.find(o => o.orderId === orderId);
+        if (order && billStatus) {
+            order.billStatus = billStatus;
             if (billStatus === 'Paid') {
-                const resto = ord.restaurant || 'Default';
-                const tKey = String(ord.tableNumber);
-                if (tables[resto] && tables[resto][tKey]) {
-                    tables[resto][tKey].isOpen = false;
-                    tables[resto][tKey].canOrder = false;
-                    tables[resto][tKey].status = 'Valid';
-                }
+                paidOrderHistory.push({ ...order });
+                saveJSON(paidHistoryFilePath, paidOrderHistory);
             }
             saveJSON(ordersFilePath, orders);
-            saveJSON(tablesFilePath, tables);
+            syncTableStatuses();
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
-    socket.on('clear_table_orders', ({ restaurant, tableNumber }) => {
-        const resto = restaurant || 'Default';
-        const tKey = String(tableNumber);
-        orders = orders.filter(o => !((o.restaurant || 'Default') === resto && String(o.tableNumber) === tKey));
-        if (tableRequests[resto]) delete tableRequests[resto][tKey];
-        if (tables[resto] && tables[resto][tKey]) {
-            tables[resto][tKey].isOpen = false;
-            tables[resto][tKey].canOrder = false;
-            tables[resto][tKey].status = 'Valid';
-        }
+    socket.on('clear_bill', ({ orderId }) => {
+        orders = orders.filter(o => o.orderId !== orderId);
         saveJSON(ordersFilePath, orders);
-        saveJSON(tablesFilePath, tables);
-        saveJSON(tableRequestsFilePath, tableRequests);
+        syncTableStatuses();
         io.emit('state_update', { tables, tableRequests, orders });
     });
 });
 
+app.get('/api/restaurants', (req, res) => {
+    try {
+        const files = fs.readdirSync(restaurantsDir);
+        const restaurants = files
+            .filter(file => file.endsWith('.json'))
+            .map(file => path.basename(file, '.json'));
+        res.json(restaurants);
+    } catch (e) {
+        res.status(500).json({ error: 'Unable to scan restaurants directory' });
+    }
+});
+
+app.get('/api/menu/:restaurantName', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+    res.json(loadJSON(menuFilePath, []));
+});
+
+app.post('/api/menu/:restaurantName', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+
+    const { nameEn, nameAr, price, category } = req.body;
+    let menuCategories = loadJSON(menuFilePath, []);
+    const newItem = {
+        id: 'item_' + Date.now(),
+        nameEn: nameEn || 'New Item',
+        nameAr: nameAr || nameEn || 'صنف جديد',
+        price: parseFloat(price) || 0,
+        descEn: '', descAr: ''
+    };
+    let cat = menuCategories.find(c => c.categoryEn === category);
+    if (!cat) {
+        cat = { categoryEn: category || "Specials", categoryAr: "أطباق مميزة", items: [] };
+        menuCategories.push(cat);
+    }
+    cat.items.push(newItem);
+    saveJSON(menuFilePath, menuCategories);
+    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
+    res.json({ success: true, item: newItem });
+});
+
+app.put('/api/menu/:restaurantName/:id', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const id = req.params.id;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+
+    const { nameEn, nameAr, price, category } = req.body;
+    let menuCategories = loadJSON(menuFilePath, []);
+    let updatedItem = null;
+
+    menuCategories.forEach(cat => {
+        cat.items.forEach(item => {
+            if (item.id === id) {
+                if (nameEn !== undefined) item.nameEn = nameEn;
+                if (nameAr !== undefined) item.nameAr = nameAr || nameEn;
+                if (price !== undefined) item.price = parseFloat(price) || 0;
+                updatedItem = item;
+            }
+        });
+    });
+
+    saveJSON(menuFilePath, menuCategories);
+    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
+    res.json({ success: true, item: updatedItem });
+});
+
+app.delete('/api/menu/:restaurantName/:id', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const id = req.params.id;
+    const safeName = path.basename(restaurantName);
+    const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+
+    let menuCategories = loadJSON(menuFilePath, []);
+    menuCategories.forEach(cat => { cat.items = cat.items.filter(i => i.id !== id); });
+    saveJSON(menuFilePath, menuCategories);
+    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
+    res.json({ success: true });
+});
+
+app.get('/api/revenue', (req, res) => {
+    const allPaid = [...paidOrderHistory, ...orders.filter(o => o.billStatus === 'Paid')];
+    const revenueReport = {};
+    
+    allPaid.forEach(o => {
+        const resto = o.restaurant || 'Default';
+        const date = o.date || new Date().toISOString().split('T')[0];
+        const tbl = o.tableNumber;
+
+        if (!revenueReport[resto]) revenueReport[resto] = {};
+        if (!revenueReport[resto][date]) revenueReport[resto][date] = {};
+        if (!revenueReport[resto][date][tbl]) revenueReport[resto][date][tbl] = 0;
+        
+        revenueReport[resto][date][tbl] += o.total;
+    });
+
+    res.json(revenueReport);
+});
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+    console.log(`🚀 Advanced Multi-Restaurant Server running on port ${PORT}`);
+});
