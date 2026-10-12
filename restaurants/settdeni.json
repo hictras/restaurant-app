@@ -1,0 +1,839 @@
+{
+  "restaurant": "Ring N Bring",
+  "menu": [
+    {
+      "category": "Salads",
+      "items": [
+        {
+          "id": "item-000",
+          "title": "Tabouleh",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255700779_Set%20el%20Dini%20by%20Blendsvisuals-0010.JPG?alt=media&token=eebfa781-4aad-415c-bcaf-438a7475a11a"
+        },
+        {
+          "id": "item-001",
+          "title": "Fatouch",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759254955371_Set%20el%20Dini%20by%20Blendsvisuals-1.JPG?alt=media&token=0019aaee-d969-4342-853b-be740c231cf7"
+        },
+        {
+          "id": "item-002",
+          "title": "LENTIL SALAD",
+          "description": "",
+          "price_usd": 6.50,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255889036_Set%20el%20Dini%20by%20Blendsvisuals-0032.JPG?alt=media&token=081751ed-c4a4-473b-a8ed-0e07af783424"
+        },
+        {
+          "id": "item-003",
+          "title": "BEETROOT SALAD",
+          "description": "",
+          "price_usd": 11.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255820326_Set%20el%20Dini%20by%20Blendsvisuals-0028.JPG?alt=media&token=6b36cf64-57df-4261-b73c-fef337b865f9"
+        },
+        {
+          "id": "item-004",
+          "title": "POTATO SALAD",
+          "description": "",
+          "price_usd": 6.50,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255923425_Set%20el%20Dini%20by%20Blendsvisuals-0036.JPG?alt=media&token=55920fd5-fd9f-4aed-8118-604a2499502a"
+        },
+        {
+          "id": "item-005",
+          "title": "Bastrami Goat Cheese Salad",
+          "description": "",
+          "price_usd": 17.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-006",
+          "title": "Chicken Ceaser",
+          "description": "",
+          "price_usd": 17.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    },
+    {
+      "category": "Nayyeh",
+      "items": [
+        {
+          "id": "item-100",
+          "title": "Habra Nayeh",
+          "description": "",
+          "price_usd": 18.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256443488_Set%20el%20Dini%20by%20Blendsvisuals-0086.JPG?alt=media&token=1f9e24fd-96c4-4c88-9046-c324002c92c2"
+        },
+        {
+          "id": "item-101",
+          "title": "Kebbeh Nayeh",
+          "description": "",
+          "price_usd": 18.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256474529_Set%20el%20Dini%20by%20Blendsvisuals-0092.JPG?alt=media&token=74caaa4e-077e-4dd8-8135-beb6435b0639"
+        },
+        {
+          "id": "item-102",
+          "title": "Frakeh",
+          "description": "",
+          "price_usd": 22.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256406149_Set%20el%20Dini%20by%20Blendsvisuals-0079.JPG?alt=media&token=ac7cb2b7-c914-421b-8309-b99731a021d5"
+        },
+        {
+          "id": "item-103",
+          "title": "Lawha Nayeh",
+          "description": "",
+          "price_usd": 45.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256384998_Set%20el%20Dini%20by%20Blendsvisuals-0074.JPG?alt=media&token=f44a41a4-b411-4e5d-9305-0ff40c805882"
+        },
+        {
+          "id": "item-104",
+          "title": "KAFTA",
+          "description": "",
+          "price_usd": 20.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-105",
+          "title": "NAYE MTAMAME",
+          "description": "",
+          "price_usd": 20.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    },
+    {
+      "category": "Lebanese Cold Mezza",
+      "items": [
+        {
+          "id": "item-200",
+          "title": "Hommus",
+          "description": "",
+          "price_usd": 8.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258842832_Set%20el%20Dini%20by%20Blendsvisuals-5155.JPG?alt=media&token=da28b9ea-31d9-437d-91e5-57d927c1a5fd"
+        },
+        {
+          "id": "item-201",
+          "title": "Hommus Bel Snoubar",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255951898_Set%20el%20Dini%20by%20Blendsvisuals-0037.JPG?alt=media&token=996975e4-8c39-4ee7-85cc-c37436d21aa7"
+        },
+        {
+          "id": "item-202",
+          "title": "Hommus Kebet Soujouk",
+          "description": "",
+          "price_usd": 14.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-203",
+          "title": "Moutabal",
+          "description": "",
+          "price_usd": 8.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255738099_Set%20el%20Dini%20by%20Blendsvisuals-0017.JPG?alt=media&token=07d1c88c-dc3b-4de3-91a3-221c845e08b1"
+        },
+        {
+          "id": "item-204",
+          "title": "Raheb",
+          "description": "",
+          "price_usd": 10.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-205",
+          "title": "Mohamara",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258892881_Set%20el%20Dini%20by%20Blendsvisuals-5156.JPG?alt=media&token=5347aef1-8aa2-466c-982e-9da4aa99760f"
+        },
+        {
+          "id": "item-207",
+          "title": "Wara2 Enab",
+          "description": "",
+          "price_usd": 10.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255647825_Set%20el%20Dini%20by%20Blendsvisuals-1-2.JPG?alt=media&token=9197d0c3-0ec6-4083-8f4e-024e1708641b"
+        },
+        {
+          "id": "item-208",
+          "title": "Hendbeh Bel Zeit",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258956760_Set%20el%20Dini%20by%20Blendsvisuals-5167.JPG?alt=media&token=158c1069-908b-43dc-a677-ac2b1cfc9655"
+        },
+        {
+          "id": "item-2013",
+          "title": "ME7CHE SELE2",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255854830_Set%20el%20Dini%20by%20Blendsvisuals-0030.JPG?alt=media&token=4915b16b-dd21-4051-bcd8-abe86bf4d2b0"
+        },
+        {
+          "id": "item-2015",
+          "title": "HOUMMUS MOUTAAM",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-2016",
+          "title": "TAJEN SAMAK",
+          "description": "",
+          "price_usd": 12.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-2017",
+          "title": "MOUTABAL BETTROOT",
+          "description": "",
+          "price_usd": 10.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-2018",
+          "title": "HOMMUS SETTELDENI",
+          "description": "HOMMUS PESTO,HOMMUS SPICY,HOMMUS MOUTAAM",
+          "price_usd": 15.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-2019",
+          "title": "Mafrouket Tjen",
+          "description": "",
+          "price_usd": 12.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-2020",
+          "title": "Bourghoul Ala Banadoura",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-2021",
+          "title": "Chicken Avocado",
+          "description": "",
+          "price_usd": 17.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    },
+    {
+      "category": "Lebanese Hot Mezza",
+      "items": [
+        {
+          "id": "item-300",
+          "title": "Hommus Bel Lahmeh",
+          "description": "",
+          "price_usd": 20.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256613462_Set%20el%20Dini%20by%20Blendsvisuals-0106.JPG?alt=media&token=791e29cf-de26-4845-a568-018a850d3771"
+        },
+        {
+          "id": "item-301",
+          "title": "Batata Harra",
+          "description": "",
+          "price_usd": 9.50,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256563630_Set%20el%20Dini%20by%20Blendsvisuals-0102.JPG?alt=media&token=83a98595-ae78-4519-86af-0b800ae7acaa"
+        },
+        {
+          "id": "item-303",
+          "title": "Lahmeh Rass Asfour",
+          "description": "",
+          "price_usd": 17.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256592159_Set%20el%20Dini%20by%20Blendsvisuals-0105.JPG?alt=media&token=16b8cc6d-d385-4100-ab98-b24e39d52514"
+        },
+        {
+          "id": "item-304",
+          "title": "Sawdet Djej",
+          "description": "",
+          "price_usd": 12.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257013464_Set%20el%20Dini%20by%20Blendsvisuals-0141.JPG?alt=media&token=64f17a64-757b-4cb7-a4da-3138ae5d4512"
+        },
+        {
+          "id": "item-305",
+          "title": "Kebbeh Me2liyeh",
+          "description": "",
+          "price_usd": 16.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256209494_Set%20el%20Dini%20by%20Blendsvisuals-0053.JPG?alt=media&token=ca115e28-1692-428e-a4c7-26c7a401b6bb"
+        },
+        {
+          "id": "item-306",
+          "title": "Kebbeh Jowz",
+          "description": "",
+          "price_usd": 16.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256302308_Set%20el%20Dini%20by%20Blendsvisuals-0065.JPG?alt=media&token=2ea67b2a-3b6c-4c98-ab79-c9cb894073bc"
+        },
+        {
+          "id": "item-307",
+          "title": "Rkakat",
+          "description": "Fried Or Grilled",
+          "price_usd": 13.50,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256233101_Set%20el%20Dini%20by%20Blendsvisuals-0055.JPG?alt=media&token=20f1c6a7-2b26-4168-ab66-670522027b19"
+        },
+        {
+          "id": "item-308",
+          "title": "Makanek",
+          "description": "Debs Or Hamoud",
+          "price_usd": 16.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256803943_Set%20el%20Dini%20by%20Blendsvisuals-0116.JPG?alt=media&token=e7faa85f-83ff-4ebe-9899-3260db297e99"
+        },
+        {
+          "id": "item-309",
+          "title": "Sambousek",
+          "description": "",
+          "price_usd": 10.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256330116_Set%20el%20Dini%20by%20Blendsvisuals-0068.JPG?alt=media&token=3ef2f271-b5dc-47c2-83f1-245b932758c8"
+        },
+        {
+          "id": "item-3010",
+          "title": "Falafel",
+          "description": "",
+          "price_usd": 8.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257071213_Set%20el%20Dini%20by%20Blendsvisuals-0155.JPG?alt=media&token=fedc5c13-2722-4603-a198-eb9e4be08d3a"
+        },
+        {
+          "id": "item-3011",
+          "title": "Msakhan Djej",
+          "description": "",
+          "price_usd": 14.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256278945_Set%20el%20Dini%20by%20Blendsvisuals-0063.JPG?alt=media&token=886f0705-8e5a-40ac-bed1-11e5e8aa3e7f"
+        },
+        {
+          "id": "item-3012",
+          "title": "Fries",
+          "description": "",
+          "price_usd": 8.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256661692_Set%20el%20Dini%20by%20Blendsvisuals-0111.JPG?alt=media&token=999d1209-62bc-491a-844c-f79bdea70817"
+        },
+        {
+          "id": "item-3013",
+          "title": "3asafir Mtafeyeh",
+          "description": "",
+          "price_usd": 26.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258577393_Set%20el%20Dini%20by%20Blendsvisuals-0457.JPG?alt=media&token=db2531bd-10a7-44c0-8be8-dc1e49642e0a"
+        },
+        {
+          "id": "item-3014",
+          "title": "LEBANESE BIFTEK",
+          "description": "BLACK ANGUS AUSTRALIAN",
+          "price_usd": 27.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759259425075_Set%20el%20Dini%20by%20Blendsvisuals-0133.JPG?alt=media&token=e32cfd66-e440-49fd-9887-b65c4f69d3ba"
+        },
+        {
+          "id": "item-3015",
+          "title": "KEBBE ZGHERTEWIYE",
+          "description": "",
+          "price_usd": 20.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256366196_Set%20el%20Dini%20by%20Blendsvisuals-0072.JPG?alt=media&token=68ed65a7-98c2-4b8f-8524-997df5225044"
+        },
+        {
+          "id": "item-3016",
+          "title": "JWENEH PROVENCALE",
+          "description": "",
+          "price_usd": 13.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256539732_Set%20el%20Dini%20by%20Blendsvisuals-0101.JPG?alt=media&token=e1187127-1fce-4f36-807e-8ef88133961a"
+        },
+        {
+          "id": "item-3017",
+          "title": "FATAYER",
+          "description": "",
+          "price_usd": 7.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256875479_Set%20el%20Dini%20by%20Blendsvisuals-0120.JPG?alt=media&token=39cc6155-fe29-49d5-9a14-ec62b718c915"
+        },
+        {
+          "id": "item-3018",
+          "title": "JWENEH GRILLED",
+          "description": "",
+          "price_usd": 13.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256849844_Set%20el%20Dini%20by%20Blendsvisuals-0119.JPG?alt=media&token=ffd86fae-b038-4d1e-82cc-fbded9a330f5"
+        },
+        {
+          "id": "item-3019",
+          "title": "Batata Mechwiye",
+          "description": "",
+          "price_usd": 7.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257951314_Set%20el%20Dini%20by%20Blendsvisuals-0269.JPG?alt=media&token=037c9613-f68c-4bc7-b0c8-5dc29ef7fdc2"
+        },
+        {
+          "id": "item-3020",
+          "title": "Arayes Chicken",
+          "description": "",
+          "price_usd": 19.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-3021",
+          "title": "Lekmet Kharouf",
+          "description": "",
+          "price_usd": 16.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    },
+    {
+      "category": "Main Course",
+      "items": [
+        {
+          "id": "item-400",
+          "title": "Grilled Steak",
+          "description": "",
+          "price_usd": 32.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-401",
+          "title": "Grilled Chicken Breast",
+          "description": "",
+          "price_usd": 23.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-402",
+          "title": "Grilled Salmon",
+          "description": "",
+          "price_usd": 28.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-403",
+          "title": "Ribeye",
+          "description": "",
+          "price_usd": 40.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-404",
+          "title": "Chicken Gnocchi Pesto",
+          "description": "",
+          "price_usd": 25.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-405",
+          "title": "Chicken Frite",
+          "description": "",
+          "price_usd": 25.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-406",
+          "title": "Steak Frite",
+          "description": "",
+          "price_usd": 32.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    },
+    {
+      "category": "Fatteh",
+      "items": [
+        {
+          "id": "item-500",
+          "title": "Fattet Hommus",
+          "description": "",
+          "price_usd": 14.50,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759255977148_Set%20el%20Dini%20by%20Blendsvisuals-0041.JPG?alt=media&token=26f2584c-cb49-427b-ba47-276ec561eefa"
+        },
+        {
+          "id": "item-501",
+          "title": "Fattet Betenjen",
+          "description": "",
+          "price_usd": 14.50,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256026115_Set%20el%20Dini%20by%20Blendsvisuals-0042.JPG?alt=media&token=d9bc35a8-5911-4072-ae39-daf1f145cd08"
+        },
+        {
+          "id": "item-502",
+          "title": "Fattet Kawarma",
+          "description": "",
+          "price_usd": 20.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256074613_Set%20el%20Dini%20by%20Blendsvisuals-0046.JPG?alt=media&token=3d7b5111-0dca-4c5e-8b97-7728565082ba"
+        },
+        {
+          "id": "item-504",
+          "title": "Fattet Wara2 3enab",
+          "description": "",
+          "price_usd": 20.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256255415_Set%20el%20Dini%20by%20Blendsvisuals-0059.JPG?alt=media&token=b99f2dce-5374-441a-93f9-f39ea7adb946"
+        },
+        {
+          "id": "item-506",
+          "title": "Fattet Shish Barak",
+          "description": "",
+          "price_usd": 16.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759256144472_Set%20el%20Dini%20by%20Blendsvisuals-0050.JPG?alt=media&token=aa2b9427-4700-422a-8302-39627035fbf5"
+        }
+      ]
+    },
+    {
+      "category": "Mashewi",
+      "items": [
+        {
+          "id": "item-600",
+          "title": "KABAB",
+          "description": "",
+          "price_usd": 21.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257327363_Set%20el%20Dini%20by%20Blendsvisuals-0191.JPG?alt=media&token=d48854fd-b8f0-4406-9ab6-d2b1c3a9a3b1"
+        },
+        {
+          "id": "item-601",
+          "title": "Kheshkhash",
+          "description": "",
+          "price_usd": 23.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257631859_Set%20el%20Dini%20by%20Blendsvisuals-0238.JPG?alt=media&token=944ce7a0-b2a1-4d2f-8106-6fbb9044e832"
+        },
+        {
+          "id": "item-602",
+          "title": "Riyash Ghanam 3al Fahem",
+          "description": "",
+          "price_usd": 34.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257156424_Set%20el%20Dini%20by%20Blendsvisuals-0170.JPG?alt=media&token=456ef160-7d7a-4106-8aee-4b4320b54c32"
+        },
+        {
+          "id": "item-603",
+          "title": "She2af",
+          "description": "",
+          "price_usd": 33.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257236577_Set%20el%20Dini%20by%20Blendsvisuals-0178.JPG?alt=media&token=ce5e12a5-2e76-48fb-a0b9-28cd8465761f"
+        },
+        {
+          "id": "item-604",
+          "title": "Taouk",
+          "description": "",
+          "price_usd": 21.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257382485_Set%20el%20Dini%20by%20Blendsvisuals-0199.JPG?alt=media&token=201bc22e-e7d4-49a1-98dd-3246a22e225d"
+        },
+        {
+          "id": "item-605",
+          "title": "Farouj Msahab",
+          "description": "",
+          "price_usd": 26.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257447115_Set%20el%20Dini%20by%20Blendsvisuals-0205.JPG?alt=media&token=98affed3-cd93-4845-bdd1-ea69d844745a"
+        },
+        {
+          "id": "item-607",
+          "title": "3ARAYES KAFTA",
+          "description": "",
+          "price_usd": 25.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257352525_Set%20el%20Dini%20by%20Blendsvisuals-0197.JPG?alt=media&token=4b521ed6-2c20-4c66-837e-e7a2983f00f6"
+        },
+        {
+          "id": "item-608",
+          "title": "Mansaf Iraqi",
+          "description": "3 Person",
+          "price_usd": 45.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-609",
+          "title": "Mansaf Ordoni",
+          "description": "for 2 and 3 person",
+          "price_usd": 45.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-6010",
+          "title": "Ketef Ghanam Maa Warak Enab",
+          "description": "for 4 person",
+          "price_usd": 100.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-6011",
+          "title": "Mashewi Mshakaleh",
+          "description": "",
+          "price_usd": 36.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-6012",
+          "title": "CHICKEN KABAB",
+          "description": "",
+          "price_usd": 21.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-6013",
+          "title": "KABAB BATENJEN",
+          "description": "",
+          "price_usd": 22.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-6014",
+          "title": "KABAB OURFALI",
+          "description": "",
+          "price_usd": 22.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-6015",
+          "title": "KABAB SETTELDENI",
+          "description": "",
+          "price_usd": 18.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-6017",
+          "title": "Tabliyet Setteldeni",
+          "description": "",
+          "price_usd": 95.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1776789439.jpg?alt=media&token=32fde304-a3e7-4bcb-b0f8-9e1b19df4338"
+        }
+      ]
+    },
+    {
+      "category": "Sahen Yawmi",
+      "items": [
+        {
+          "id": "item-700",
+          "title": "Riz Shar2i Bel Lahem",
+          "description": "DAILY",
+          "price_usd": 33.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257757967_Set%20el%20Dini%20by%20Blendsvisuals-0234.JPG?alt=media&token=d4110926-f42c-422f-ae2c-2887f5aa5693"
+        },
+        {
+          "id": "item-701",
+          "title": "Riz Shar2i Bel Djej",
+          "description": "DAILY",
+          "price_usd": 24.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257698240_Set%20el%20Dini%20by%20Blendsvisuals-0230.JPG?alt=media&token=b82efeef-d527-4407-8ba2-7a6ad3d6d064"
+        },
+        {
+          "id": "item-702",
+          "title": "Kebbeh Bel Laban",
+          "description": "DAILY",
+          "price_usd": 18.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257809867_Set%20el%20Dini%20by%20Blendsvisuals-0243.JPG?alt=media&token=f926005b-59fd-4084-b5a7-a5d91df5a1f1"
+        },
+        {
+          "id": "item-703",
+          "title": "Shish Barak",
+          "description": "DAILY",
+          "price_usd": 17.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257789431_Set%20el%20Dini%20by%20Blendsvisuals-0244.JPG?alt=media&token=b2cce898-1f79-4d28-bc01-8ac646634409"
+        },
+        {
+          "id": "item-704",
+          "title": "Koussa W Wara2 3enab Ma3 El Castaletta",
+          "description": "DAILY",
+          "price_usd": 30.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257913827_Set%20el%20Dini%20by%20Blendsvisuals-0264.JPG?alt=media&token=0273f418-c118-42f6-87dd-9042d8a0e027"
+        },
+        {
+          "id": "item-705",
+          "title": "Frikeh Bel Djej",
+          "description": "TUESDAY",
+          "price_usd": 19.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258189728_Set%20el%20Dini%20by%20Blendsvisuals-0326.JPG?alt=media&token=3d356980-c79f-4ae6-a2ec-643d2a50bfba"
+        },
+        {
+          "id": "item-706",
+          "title": "Frikeh Bel Lahmeh",
+          "description": "TUESDAY",
+          "price_usd": 19.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759260574275_Set%20el%20Dini%20by%20Blendsvisuals-0353.JPG?alt=media&token=8e6e48da-7a40-4fd5-be8b-04efa1f74173"
+        },
+        {
+          "id": "item-707",
+          "title": "Mloukhiyeh Bel Djej",
+          "description": "WEDNESDAY",
+          "price_usd": 21.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258163397_Set%20el%20Dini%20by%20Blendsvisuals-0316.JPG?alt=media&token=7f7fcad7-7a49-42d3-88ae-70bf45a868da"
+        },
+        {
+          "id": "item-708",
+          "title": "Fweregh Wara2 3enab",
+          "description": "THURSDAY",
+          "price_usd": 29.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258031964_Set%20el%20Dini%20by%20Blendsvisuals-0274.JPG?alt=media&token=83b66474-0014-4e6c-b549-a8c971eb94cd"
+        },
+        {
+          "id": "item-709",
+          "title": "LEBANESE BURGER",
+          "description": "",
+          "price_usd": 16.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1761658190.jpg?alt=media&token=ab65ebd1-c02e-444d-9021-2d35f80c4ee2"
+        },
+        {
+          "id": "item-7010",
+          "title": "Ouzi Bel Lahem",
+          "description": "MONDAY",
+          "price_usd": 25.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-7011",
+          "title": "SIYADIYEH",
+          "description": "FRIDAY",
+          "price_usd": 20.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    },
+    {
+      "category": "Dessert",
+      "items": [
+        {
+          "id": "item-800",
+          "title": "Mafroukeh",
+          "description": "",
+          "price_usd": 14.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759259004578_Set%20el%20Dini%20by%20Blendsvisuals-0159.JPG?alt=media&token=503f42ad-d2e8-4184-b522-99067bb15d18"
+        },
+        {
+          "id": "item-801",
+          "title": "Honey Cake",
+          "description": "",
+          "price_usd": 16.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257505083_Set%20el%20Dini%20by%20Blendsvisuals-0212.JPG?alt=media&token=bee8fabc-c867-401d-98a7-596aa208ee95"
+        },
+        {
+          "id": "item-802",
+          "title": "CHOCOLATE FONDANT",
+          "description": "WHITE VANILLA ICE CREAM",
+          "price_usd": 14.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257297497_Set%20el%20Dini%20by%20Blendsvisuals-0184.JPG?alt=media&token=2e50ecb2-5173-4a7f-82eb-916925e69d01"
+        },
+        {
+          "id": "item-803",
+          "title": "EXOTIC FRUITS",
+          "description": "",
+          "price_usd": 21.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257476221_Set%20el%20Dini%20by%20Blendsvisuals-0210.JPG?alt=media&token=ec73d79a-b51a-44b7-8764-a78c26c25858"
+        },
+        {
+          "id": "item-804",
+          "title": "LAYALI BEIRUT",
+          "description": "",
+          "price_usd": 18.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1761658359.jpg?alt=media&token=2084c6e3-e92d-4b8b-939b-ee6dcc3ca2a2"
+        },
+        {
+          "id": "item-805",
+          "title": "Halawet El Jeben",
+          "description": "",
+          "price_usd": 13.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257103700_Set%20el%20Dini%20by%20Blendsvisuals-0164.JPG?alt=media&token=32e86206-0e89-418b-8f37-6142b8c37c34"
+        },
+        {
+          "id": "item-806",
+          "title": "3eish El Saraya",
+          "description": "",
+          "price_usd": 9.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759259065990_Set%20el%20Dini%20by%20Blendsvisuals-0157.JPG?alt=media&token=a3742228-a278-470d-ab72-06b5e48766d6"
+        },
+        {
+          "id": "item-807",
+          "title": "Fweke with ashta",
+          "description": "",
+          "price_usd": 25.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1780143940.jpg?alt=media&token=606fc85b-1c41-4df4-a4b5-f69c6f1c72bb"
+        },
+        {
+          "id": "item-808",
+          "title": "REZ BEL HALIB",
+          "description": "",
+          "price_usd": 10.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759258132327_Set%20el%20Dini%20by%20Blendsvisuals-0312.JPG?alt=media&token=145da677-5018-4643-9381-d8b1b402870d"
+        },
+        {
+          "id": "item-809",
+          "title": "PAIN PERDU",
+          "description": "",
+          "price_usd": 19.00,
+          "image_url": "https://firebasestorage.googleapis.com/v0/b/rnb-resto.appspot.com/o/images%2F1759257571669_Set%20el%20Dini%20by%20Blendsvisuals-0218.JPG?alt=media&token=a4acf662-f4eb-4e54-bb6f-d46a7a50758d"
+        },
+        {
+          "id": "item-8010",
+          "title": "Nutella Pancake",
+          "description": "",
+          "price_usd": 15.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8011",
+          "title": "Pistachio Pancake",
+          "description": "",
+          "price_usd": 17.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8012",
+          "title": "Imm Ali",
+          "description": "",
+          "price_usd": 20.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8013",
+          "title": "Fweke",
+          "description": "",
+          "price_usd": 18.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8014",
+          "title": "ASHTA BEL ASHTA",
+          "description": "",
+          "price_usd": 13.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8015",
+          "title": "Baklawa With Ashta",
+          "description": "",
+          "price_usd": 14.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8016",
+          "title": "Knefet Set El Deni",
+          "description": "",
+          "price_usd": 15.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8017",
+          "title": "Ousamlieh Ashta",
+          "description": "",
+          "price_usd": 14.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-8018",
+          "title": "Mehalabieh With Mago",
+          "description": "",
+          "price_usd": 14.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    },
+    {
+      "category": "Shisha Menu",
+      "items": [
+        {
+          "id": "item-900",
+          "title": "Mouassal",
+          "description": "",
+          "price_usd": 12.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-901",
+          "title": "Ajami",
+          "description": "",
+          "price_usd": 15.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        },
+        {
+          "id": "item-902",
+          "title": "Boumali",
+          "description": "",
+          "price_usd": 16.00,
+          "image_url": "assets/imgs/placeholder.jpg"
+        }
+      ]
+    }
+  ]
+}
