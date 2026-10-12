@@ -19,7 +19,7 @@
                 <select id="kitchenRestaurantSelector" class="restaurant-select bg-transparent text-amber-400 font-bold text-sm focus:outline-none cursor-pointer" onchange="switchKitchenRestaurant(this.value)" title="Select Restaurant"></select>
             </div>
             <button onclick="requestNotificationPermission()" class="text-xs bg-amber-500 text-white px-3 py-2 rounded-xl font-semibold hover:bg-amber-600 transition">Enable Push 🔔</button>
-            <a href="admin.html" class="text-xs bg-indigo-600 px-3 py-2 rounded-xl font-semibold hover:bg-indigo-700 transition">Admin Panel 🍔</a>
+            <a href="admin.html" class="text-xs bg-indigo-600 px-3 py-2 rounded-xl font-semibold hover:bg-indigo-700 transition">Admin Panel 🛠️</a>
         </div>
     </header>
 
@@ -96,6 +96,16 @@
                             <span class="text-xl font-bold text-amber-400">Table #${o.tableNumber}</span>
                             <span class="text-xs px-2.5 py-1 rounded font-semibold bg-blue-500/20 text-blue-300">${o.kitchenStatus}</span>
                         </div>
+                        
+                        <!-- Fixed Header for Radio Status Column -->
+                        <div class="flex justify-between items-center px-2 mb-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700/60 pb-1">
+                            <span>Item</span>
+                            <div class="flex gap-4 pr-1">
+                                <span class="text-amber-400 w-10 text-center">Cook</span>
+                                <span class="text-emerald-400 w-10 text-center">Ready</span>
+                            </div>
+                        </div>
+
                         <ul class="space-y-2 mb-4 text-sm">
                             ${o.items.map((item, itemIdx) => {
                                 if(!item.checks) item.checks = [false, false];
@@ -103,14 +113,12 @@
                                 return `
                                     <li class="flex justify-between items-center bg-gray-700/40 p-2.5 rounded-lg">
                                         <span class="font-medium">${item.qty}x${item.name}</span>
-                                        <div class="flex items-center gap-4">
-                                            <label class="flex items-center gap-1.5 text-xs text-amber-300 cursor-pointer">
+                                        <div class="flex items-center gap-6 pr-2">
+                                            <label class="cursor-pointer flex justify-center w-10">
                                                 <input type="radio" name="${groupName}" ${item.checks[0] && !item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 0})" class="w-4 h-4 accent-amber-500">
-                                                <span>1: Cook</span>
                                             </label>
-                                            <label class="flex items-center gap-1.5 text-xs text-emerald-300 cursor-pointer">
+                                            <label class="cursor-pointer flex justify-center w-10">
                                                 <input type="radio" name="${groupName}" ${item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 1})" class="w-4 h-4 accent-emerald-500">
-                                                <span>2: Ready</span>
                                             </label>
                                         </div>
                                     </li>`;
@@ -123,7 +131,7 @@
                             <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Cooking'})" class="py-2 rounded transition ${o.kitchenStatus==='Cooking'?'bg-amber-600':'bg-gray-700 hover:bg-gray-600'}">Cook</button>
                             <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Ready'})" class="py-2 rounded transition ${o.kitchenStatus==='Ready'?'bg-emerald-600':'bg-gray-700 hover:bg-gray-600'}">Ready</button>
                         </div>
-                        <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Sent to Table'})" class="w-full bg-purple-600 hover:bg-purple-700 py-2.5 rounded-xl text-xs font-semibold transition shadow">Sent to Table ➔</button>
+                        <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Sent to Table'})" class="w-full bg-purple-600 hover:bg-purple-700 py-2.5 rounded-xl text-xs font-semibold transition shadow">Sent to Table 🚀</button>
                     </div>
                 </div>`).join('');
         }
