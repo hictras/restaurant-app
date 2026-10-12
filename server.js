@@ -179,6 +179,18 @@ io.on('connection', (socket) => {
         if (order && order.items[itemIndex]) {
             if (!order.items[itemIndex].checks) order.items[itemIndex].checks = [false, false];
             order.items[itemIndex].checks[checkIndex] = !order.items[itemIndex].checks[checkIndex];
+            
+            // Auto-update order main kitchen status if all items match a check state
+            const items = order.items;
+            const allCook = items.length > 0 && items.every(i => i.checks && i.checks[0] && !i.checks[1]);
+            const allReady = items.length > 0 && items.every(i => i.checks && i.checks[1]);
+
+            if (allReady) {
+                order.kitchenStatus = 'Ready';
+            } else if (allCook) {
+                order.kitchenStatus = 'Cooking';
+            }
+
             saveJSON(ordersFilePath, orders);
             io.emit('state_update', { tables, tableRequests, orders });
         }
