@@ -175,6 +175,37 @@ app.get('/api/verify-token', (req, res) => {
     res.json({ success: true, restaurant: session.restaurant, tableNumber: session.table_number });
 });
 
+// API endpoint to create/retrieve session token from customer.html
+app.post('/api/create-session', (req, res) => {
+    const { restaurant, tableNumber } = req.body;
+    if (!restaurant || !tableNumber) {
+        return res.status(400).json({ success: false, message: 'Restaurant and table number required' });
+    }
+
+    try {
+        const resto = path.basename(restaurant);
+        const tKey = String(tableNumber);
+
+        let session = db.prepare('SELECT token, start_time FROM sessions WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
+        let token;
+        const now = Date.now();
+
+        if (session && (now - session.start_time <= 15 * 60 * 1000)) {
+            token = session.token;
+        } else {
+            token = 'tok_' + uuidv4().replace(/-/g, '') + now.toString(36);
+            db.prepare(`
+                INSERT OR REPLACE INTO sessions (token, restaurant, table_number, start_time)
+                VALUES (?, ?, ?, ?)
+            `).run(token, resto, tKey, now);
+        }
+
+        res.json({ success: true, token });
+    } catch (e) {
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 io.on('connection', (socket) => {
     socket.emit('state_update', getAppState());
 
@@ -396,26 +427,13 @@ app.get('/api/qr-links', (req, res) => {
         restaurants.forEach(resto => {
             const restoTables = db.prepare('SELECT table_number FROM tables_state WHERE restaurant = ?').all(resto);
             restoTables.forEach(t => {
-                const tableNumStr = String(t.table_number);
-
-                let session = db.prepare('SELECT token, start_time FROM sessions WHERE restaurant = ? AND table_number = ?').get(resto, tableNumStr);
-                let token;
-
-                const now = Date.now();
-                if (session && (now - session.start_time <= 15 * 60 * 1000)) {
-                    token = session.token;
-                } else {
-                    token = 'tok_' + uuidv4().replace(/-/g, '') + now.toString(36);
-                    db.prepare(`
-                        INSERT OR REPLACE INTO sessions (token, restaurant, table_number, start_time)
-                        VALUES (?, ?, ?, ?)
-                    `).run(token, resto, tableNumStr, now);
-                }
+                const encodedTbl = Buffer.from(String(t.table_number)).toString('base64').replace(/=/g, '').split('').reverse().join('');
+                const encodedResto = Buffer.from(String(resto)).toString('base64').replace(/=/g, '').split('').reverse().join('');
 
                 allLinks.push({
                     restaurant: resto,
                     tableNumber: t.table_number,
-                    encodedUrl: `/menu.html?token=${token}`
+                    encodedUrl: `/customer.html?tbl=${encodedTbl}&rst=${encodedResto}`
                 });
             });
         });

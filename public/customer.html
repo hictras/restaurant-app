@@ -10,30 +10,55 @@
     <div class="bg-gray-800 border border-gray-700 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-4">
         <div class="text-4xl animate-bounce">🔄</div>
         <h2 class="text-lg font-bold text-amber-400">Securely Connecting...</h2>
-        <p class="text-xs text-gray-400">Verifying your table session.</p>
+        <p class="text-xs text-gray-400">Verifying your table session QR code.</p>
     </div>
 
     <script>
+        function decodeParam(encodedText) {
+            try {
+                let rev = String(encodedText).split('').reverse().join('');
+                while (rev.length % 4 !== 0) { rev += '='; }
+                return atob(rev);
+            } catch (e) {
+                return encodedText;
+            }
+        }
+
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
+            let rawTbl = urlParams.get('tbl') || urlParams.get('table');
+            let rawRst = urlParams.get('rst');
 
-            if (!token) {
+            if (!rawTbl) {
+                const searchStr = window.location.search.replace('?', '');
+                if (searchStr.startsWith('tbl')) rawTbl = searchStr.replace('tbl', '');
+            }
+
+            if (!rawTbl || !rawRst) {
                 document.body.innerHTML = `
                     <div class="bg-gray-800 border border-red-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-3">
                         <div class="text-4xl">⚠️</div>
                         <h2 class="text-lg font-bold text-red-400">Error Page</h2>
-                        <p class="text-xs text-gray-300">Invalid or missing session token. Please scan the official QR code located on your table.</p>
+                        <p class="text-xs text-gray-300">Please scan the official QR code located on your table.</p>
                     </div>`;
                 return;
             }
 
+            const currentTable = rawTbl.length > 5 || isNaN(rawTbl) ? decodeParam(rawTbl) : rawTbl;
+            const currentRestaurant = rawRst.length > 5 ? decodeParam(rawRst) : rawRst;
+
             try {
-                const res = await fetch(`/api/verify-token?token=${encodeURIComponent(token)}`);
+                const res = await fetch('/api/create-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ restaurant: currentRestaurant, tableNumber: currentTable })
+                });
                 const data = await res.json();
 
-                if (data.success) {
-                    window.location.replace(`/menu.html?token=${token}`);
+                if (data.success && data.token) {
+                    const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
+                    localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: data.token }));
+                    window.location.replace(`/menu.html?token=${data.token}`);
                 } else {
                     throw new Error();
                 }
@@ -42,7 +67,7 @@
                     <div class="bg-gray-800 border border-red-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-3">
                         <div class="text-4xl">⚠️</div>
                         <h2 class="text-lg font-bold text-red-400">Error Page</h2>
-                        <p class="text-xs text-gray-300">Your session token is invalid or has expired.</p>
+                        <p class="text-xs text-gray-300">Failed to establish a secure table session.</p>
                     </div>`;
             }
         };
