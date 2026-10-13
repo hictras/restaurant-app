@@ -28,6 +28,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             let rawTbl = urlParams.get('tbl') || urlParams.get('table');
             let rawRst = urlParams.get('rst');
+            let lifetimeParam = urlParams.get('lifetime') || '15';
 
             if (!rawTbl) {
                 const searchStr = window.location.search.replace('?', '');
@@ -51,7 +52,11 @@
                 const res = await fetch('/api/create-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ restaurant: currentRestaurant, tableNumber: currentTable })
+                    body: JSON.stringify({
+                        restaurant: currentRestaurant,
+                        tableNumber: currentTable,
+                        lifetime: parseInt(lifetimeParam) || 15
+                    })
                 });
                 const data = await res.json();
 
