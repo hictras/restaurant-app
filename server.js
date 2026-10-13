@@ -162,10 +162,6 @@ function getAppState() {
     return { tables, tableRequests, orders, activeSessions };
 }
 
-function encodeTableParam(text) {
-    return Buffer.from(String(text)).toString('base64').replace(/=/g, '').split('').reverse().join('');
-}
-
 // API endpoint to validate token and return table & restaurant info
 app.get('/api/verify-token', (req, res) => {
     const { token } = req.query;
@@ -413,6 +409,7 @@ app.get('/api/qr-links', (req, res) => {
         });
         res.json(allLinks);
     } catch (e) {
+        console.error('QR Links Error:', e);
         res.status(500).json({ error: 'Failed to generate QR links' });
     }
 });
