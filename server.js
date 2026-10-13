@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const Database = require('better-sqlite3');
 
 const app = express();
 const server = http.createServer(app);
@@ -17,195 +18,253 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'customer.html'));
 });
 
-const dataDir = path.join(__dirname, 'data');
+app.get('/menu.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'menu.html'));
+});
+
+// Initialize SQLite Database
+const dbPath = path.join(__dirname, 'data', 'restaurant.db');
+const dataDir = path.dirname(dbPath);
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
+
+db.exec(`
+    CREATE TABLE IF NOT EXISTS tables_state (
+        restaurant TEXT,
+        table_number TEXT,
+        is_open INTEGER,
+        can_order INTEGER,
+        status TEXT,
+        PRIMARY KEY (restaurant, table_number)
+    );
+
+    CREATE TABLE IF NOT EXISTS table_requests (
+        restaurant TEXT,
+        table_number TEXT,
+        requested INTEGER,
+        PRIMARY KEY (restaurant, table_number)
+    );
+
+    CREATE TABLE IF NOT EXISTS orders (
+        order_id TEXT PRIMARY KEY,
+        restaurant TEXT,
+        table_number TEXT,
+        items TEXT,
+        total REAL,
+        kitchen_status TEXT,
+        bill_status TEXT,
+        date TEXT,
+        timestamp TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS paid_history (
+        order_id TEXT PRIMARY KEY,
+        restaurant TEXT,
+        table_number TEXT,
+        items TEXT,
+        total REAL,
+        kitchen_status TEXT,
+        bill_status TEXT,
+        date TEXT,
+        timestamp TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+        restaurant TEXT,
+        table_number TEXT,
+        token TEXT,
+        start_time INTEGER,
+        PRIMARY KEY (restaurant, table_number)
+    );
+`);
 
 const restaurantsDir = path.join(__dirname, 'restaurants');
 if (!fs.existsSync(restaurantsDir)) fs.mkdirSync(restaurantsDir);
 
-const tablesFilePath = path.join(dataDir, 'tables.json');
-const requestsFilePath = path.join(dataDir, 'requests.json');
-const ordersFilePath = path.join(dataDir, 'orders.json');
-const paidHistoryFilePath = path.join(dataDir, 'paidHistory.json');
+function getAppState() {
+    const tables = {};
+    const rows = db.prepare('SELECT * FROM tables_state').all();
+    rows.forEach(r => {
+        if (!tables[r.restaurant]) tables[r.restaurant] = {};
+        tables[r.restaurant][r.table_number] = {
+            isOpen: !!r.is_open,
+            canOrder: !!r.can_order,
+            status: r.status
+        };
+    });
 
-function loadJSON(filePath, defaultValue) {
-    try {
-        if (fs.existsSync(filePath)) {
-            const data = fs.readFileSync(filePath, 'utf8');
-            if (!data.trim()) return defaultValue;
-            return JSON.parse(data);
-        }
-    } catch (e) { console.error(`Error reading ${filePath}:`, e.message); }
-    return defaultValue;
+    const tableRequests = {};
+    const reqRows = db.prepare('SELECT * FROM table_requests WHERE requested = 1').all();
+    reqRows.forEach(r => {
+        if (!tableRequests[r.restaurant]) tableRequests[r.restaurant] = {};
+        tableRequests[r.restaurant][r.table_number] = true;
+    });
+
+    const orderRows = db.prepare('SELECT * FROM orders').all();
+    const orders = orderRows.map(o => ({
+        orderId: o.order_id,
+        restaurant: o.restaurant,
+        tableNumber: o.table_number,
+        items: JSON.parse(o.items),
+        total: o.total,
+        kitchenStatus: o.kitchen_status,
+        billStatus: o.bill_status,
+        date: o.date,
+        timestamp: o.timestamp
+    }));
+
+    return { tables, tableRequests, orders };
 }
 
-function saveJSON(filePath, data) {
-    try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 4), 'utf8');
-    } catch (e) { console.error(`Error writing ${filePath}:`, e); }
-}
-
-let tables = loadJSON(tablesFilePath, {});
-let tableRequests = loadJSON(requestsFilePath, {});
-let orders = loadJSON(ordersFilePath, []);
-let paidOrderHistory = loadJSON(paidHistoryFilePath, []);
-
-function ensureRestaurantTables(restaurantName) {
-    if (!tables[restaurantName]) {
-        tables[restaurantName] = {}; // Strictly empty by default until added from JSON/Admin
-        saveJSON(tablesFilePath, tables);
-    }
-    if (!tableRequests[restaurantName]) {
-        tableRequests[restaurantName] = {};
-    }
-}
-
-function syncTableStatuses() {
-    let changed = false;
-    for (let resto in tables) {
-        const activeTablesWithUnpaidBills = new Set(
-            orders.filter(o => (o.restaurant || 'Default') === resto && o.billStatus !== 'Paid').map(o => String(o.tableNumber))
-        );
-        for (let tNum in tables[resto]) {
-            if (activeTablesWithUnpaidBills.has(tNum) && tables[resto][tNum].status !== 'Occupied') {
-                tables[resto][tNum].status = 'Occupied';
-                changed = true;
-            } else if (!activeTablesWithUnpaidBills.has(tNum) && tables[resto][tNum].status === 'Occupied') {
-                tables[resto][tNum].status = 'Valid';
-                changed = true;
-            }
-        }
-    }
-    if (changed) saveJSON(tablesFilePath, tables);
-}
-
-// Secure Obfuscation Helper for QR Codes
 function encodeTableParam(text) {
     return Buffer.from(String(text)).toString('base64').replace(/=/g, '').split('').reverse().join('');
 }
 
 io.on('connection', (socket) => {
-    socket.emit('state_update', { tables, tableRequests, orders });
+    socket.emit('state_update', getAppState());
+
+    socket.on('register_session', ({ restaurant, tableNumber, token }, callback) => {
+        const resto = restaurant || 'Default';
+        const tKey = String(tableNumber);
+        const startTime = Date.now();
+
+        db.prepare(`
+            INSERT INTO sessions (restaurant, table_number, token, start_time)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(restaurant, table_number)
+            DO UPDATE SET token = excluded.token, start_time = excluded.start_time
+        `).run(resto, tKey, token, startTime);
+
+        if (typeof callback === 'function') callback({ success: true });
+    });
 
     socket.on('toggle_table', ({ restaurant, tableNum }) => {
         const resto = restaurant || 'Default';
-        ensureRestaurantTables(resto);
         const tKey = String(tableNum);
-        if (tables[resto] && tables[resto][tKey]) {
-            tables[resto][tKey].isOpen = !tables[resto][tKey].isOpen;
-            if (!tables[resto][tKey].isOpen) {
-                tables[resto][tKey].canOrder = false;
+
+        const current = db.prepare('SELECT is_open FROM tables_state WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
+        if (current) {
+            const newOpen = current.is_open ? 0 : 1;
+            if (newOpen === 0) {
+                db.prepare('UPDATE tables_state SET is_open = 0, can_order = 0 WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
+            } else {
+                db.prepare('UPDATE tables_state SET is_open = 1 WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
             }
-            saveJSON(tablesFilePath, tables);
-            io.emit('state_update', { tables, tableRequests, orders });
+            io.emit('state_update', getAppState());
         }
     });
 
     socket.on('toggle_order_permission', ({ restaurant, tableNum }) => {
         const resto = restaurant || 'Default';
-        ensureRestaurantTables(resto);
         const tKey = String(tableNum);
-        if (tables[resto] && tables[resto][tKey]) {
-            tables[resto][tKey].canOrder = !tables[resto][tKey].canOrder;
-            if (tables[resto][tKey].canOrder && tableRequests[resto]) {
-                delete tableRequests[resto][tKey];
+
+        const current = db.prepare('SELECT can_order FROM tables_state WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
+        if (current) {
+            const newCanOrder = current.can_order ? 0 : 1;
+            db.prepare('UPDATE tables_state SET can_order = ? WHERE restaurant = ? AND table_number = ?').run(newCanOrder, resto, tKey);
+            if (newCanOrder) {
+                db.prepare('DELETE FROM table_requests WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
             }
-            saveJSON(tablesFilePath, tables);
-            saveJSON(requestsFilePath, tableRequests);
-            io.emit('state_update', { tables, tableRequests, orders });
+            io.emit('state_update', getAppState());
         }
     });
 
-    socket.on('table_request', ({ restaurant, tableNumber }) => {
+    socket.on('table_request', ({ restaurant, tableNumber, token }) => {
         const resto = restaurant || 'Default';
-        ensureRestaurantTables(resto);
-        if (tableNumber) {
-            if (!tableRequests[resto]) tableRequests[resto] = {};
-            tableRequests[resto][String(tableNumber)] = true;
-            saveJSON(requestsFilePath, tableRequests);
-            io.emit('state_update', { tables, tableRequests, orders });
-        }
-    });
-
-    socket.on('place_order', ({ tableNumber, restaurant, items, total }, callback) => {
-        const resto = restaurant || 'Default';
-        ensureRestaurantTables(resto);
         const tKey = String(tableNumber);
 
-        if (!tables[resto][tKey] || !tables[resto][tKey].isOpen || !tables[resto][tKey].canOrder) {
+        const session = db.prepare('SELECT * FROM sessions WHERE restaurant = ? AND table_number = ? AND token = ?').get(resto, tKey, token);
+        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) return;
+
+        db.prepare(`
+            INSERT INTO table_requests (restaurant, table_number, requested) VALUES (?, ?, 1)
+            ON CONFLICT(restaurant, table_number) DO UPDATE SET requested = 1
+        `).run(resto, tKey);
+
+        io.emit('state_update', getAppState());
+    });
+
+    socket.on('place_order', ({ tableNumber, restaurant, items, total, token }, callback) => {
+        const resto = restaurant || 'Default';
+        const tKey = String(tableNumber);
+
+        const session = db.prepare('SELECT * FROM sessions WHERE restaurant = ? AND table_number = ? AND token = ?').get(resto, tKey, token);
+        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) {
+            return callback({ success: false, message: 'Session expired or unauthorized.' });
+        }
+
+        const tableState = db.prepare('SELECT * FROM tables_state WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
+        if (!tableState || !tableState.is_open || !tableState.can_order) {
             return callback({ success: false, message: 'Order submission is locked by the manager.' });
         }
 
-        const newOrder = {
-            orderId: uuidv4(),
-            tableNumber: tKey,
-            restaurant: resto,
-            items: items.map(i => ({ ...i, checks: [false, false] })),
-            total,
-            kitchenStatus: 'Received',
-            billStatus: 'Unpaid',
-            date: new Date().toISOString().split('T')[0],
-            timestamp: new Date().toLocaleTimeString()
-        };
+        const orderId = uuidv4();
+        const date = new Date().toISOString().split('T')[0];
+        const timestamp = new Date().toLocaleTimeString();
+        const formattedItems = JSON.stringify(items.map(i => ({ ...i, checks: [false, false] })));
 
-        orders.push(newOrder);
-        tables[resto][tKey].canOrder = false;
-        saveJSON(ordersFilePath, orders);
-        saveJSON(tablesFilePath, tables);
-        syncTableStatuses();
-        io.emit('state_update', { tables, tableRequests, orders });
-        callback({ success: true, orderId: newOrder.orderId });
+        const insertOrder = db.transaction(() => {
+            db.prepare(`
+                INSERT INTO orders (order_id, restaurant, table_number, items, total, kitchen_status, bill_status, date, timestamp)
+                VALUES (?, ?, ?, ?, ?, 'Received', 'Unpaid', ?, ?)
+            `).run(orderId, resto, tKey, formattedItems, total, date, timestamp);
+
+            db.prepare('UPDATE tables_state SET can_order = 0 WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
+        });
+
+        insertOrder();
+        io.emit('state_update', getAppState());
+        callback({ success: true, orderId });
     });
 
     socket.on('update_kitchen_status', ({ orderId, kitchenStatus }) => {
-        const order = orders.find(o => o.orderId === orderId);
-        if (order && kitchenStatus) {
-            order.kitchenStatus = kitchenStatus;
-            saveJSON(ordersFilePath, orders);
-            io.emit('state_update', { tables, tableRequests, orders });
-        }
+        db.prepare('UPDATE orders SET kitchen_status = ? WHERE order_id = ?').run(kitchenStatus, orderId);
+        io.emit('state_update', getAppState());
     });
 
     socket.on('toggle_item_check', ({ orderId, itemIndex, checkIndex }) => {
-        const order = orders.find(o => o.orderId === orderId);
-        if (order && order.items[itemIndex]) {
-            if (!order.items[itemIndex].checks) order.items[itemIndex].checks = [false, false];
-            order.items[itemIndex].checks[checkIndex] = !order.items[itemIndex].checks[checkIndex];
+        const orderRow = db.prepare('SELECT items FROM orders WHERE order_id = ?').get(orderId);
+        if (orderRow) {
+            let items = JSON.parse(orderRow.items);
+            if (items[itemIndex]) {
+                if (!items[itemIndex].checks) items[itemIndex].checks = [false, false];
+                items[itemIndex].checks[checkIndex] = !items[itemIndex].checks[checkIndex];
 
-            const items = order.items;
-            const allCook = items.length > 0 && items.every(i => i.checks && i.checks[0] && !i.checks[1]);
-            const allReady = items.length > 0 && items.every(i => i.checks && i.checks[1]);
+                const allCook = items.every(i => i.checks && i.checks[0] && !i.checks[1]);
+                const allReady = items.every(i => i.checks && i.checks[1]);
+                let statusUpdate = null;
+                if (allReady) statusUpdate = 'Ready';
+                else if (allCook) statusUpdate = 'Cooking';
 
-            if (allReady) {
-                order.kitchenStatus = 'Ready';
-            } else if (allCook) {
-                order.kitchenStatus = 'Cooking';
+                if (statusUpdate) {
+                    db.prepare('UPDATE orders SET items = ?, kitchen_status = ? WHERE order_id = ?').run(JSON.stringify(items), statusUpdate, orderId);
+                } else {
+                    db.prepare('UPDATE orders SET items = ? WHERE order_id = ?').run(JSON.stringify(items), orderId);
+                }
+                io.emit('state_update', getAppState());
             }
-
-            saveJSON(ordersFilePath, orders);
-            io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
     socket.on('update_bill_status', ({ orderId, billStatus }) => {
-        const order = orders.find(o => o.orderId === orderId);
-        if (order && billStatus) {
-            order.billStatus = billStatus;
+        const order = db.prepare('SELECT * FROM orders WHERE order_id = ?').get(orderId);
+        if (order) {
+            db.prepare('UPDATE orders SET bill_status = ? WHERE order_id = ?').run(billStatus, orderId);
             if (billStatus === 'Paid') {
-                paidOrderHistory.push({ ...order });
-                saveJSON(paidHistoryFilePath, paidOrderHistory);
+                db.prepare(`
+                    INSERT OR REPLACE INTO paid_history (order_id, restaurant, table_number, items, total, kitchen_status, bill_status, date, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).run(order.order_id, order.restaurant, order.table_number, order.items, order.total, order.kitchen_status, 'Paid', order.date, order.timestamp);
             }
-            saveJSON(ordersFilePath, orders);
-            syncTableStatuses();
-            io.emit('state_update', { tables, tableRequests, orders });
+            io.emit('state_update', getAppState());
         }
     });
 
     socket.on('clear_bill', ({ orderId }) => {
-        orders = orders.filter(o => o.orderId !== orderId);
-        saveJSON(ordersFilePath, orders);
-        syncTableStatuses();
-        io.emit('state_update', { tables, tableRequests, orders });
+        db.prepare('DELETE FROM orders WHERE order_id = ?').run(orderId);
+        io.emit('state_update', getAppState());
     });
 });
 
@@ -219,32 +278,25 @@ app.get('/api/restaurants', (req, res) => {
     }
 });
 
-// QR Links Generator Endpoint for Admin Printing (Filtered by Active Restaurant)
 app.get('/api/qr-links', (req, res) => {
     try {
         const targetResto = req.query.restaurant;
         const files = fs.readdirSync(restaurantsDir);
         let restaurants = files.filter(f => f.endsWith('.json')).map(f => path.basename(f, '.json'));
-
-        if (targetResto) {
-            restaurants = restaurants.filter(r => r === targetResto);
-        }
+        if (targetResto) restaurants = restaurants.filter(r => r === targetResto);
 
         const allLinks = [];
-
         restaurants.forEach(resto => {
-            ensureRestaurantTables(resto);
-            const restoTables = tables[resto] || {};
+            const restoTables = db.prepare('SELECT table_number FROM tables_state WHERE restaurant = ?').all(resto);
             const encodedResto = encodeTableParam(resto);
-
-            for (let tNum in restoTables) {
-                const encodedTbl = encodeTableParam(tNum);
+            restoTables.forEach(t => {
+                const encodedTbl = encodeTableParam(t.table_number);
                 allLinks.push({
                     restaurant: resto,
-                    tableNumber: tNum,
+                    tableNumber: t.table_number,
                     encodedUrl: `/customer.html?tbl=${encodedTbl}&rst=${encodedResto}`
                 });
-            }
+            });
         });
         res.json(allLinks);
     } catch (e) {
@@ -252,45 +304,49 @@ app.get('/api/qr-links', (req, res) => {
     }
 });
 
-// Add Table Endpoint
 app.post('/api/tables/:restaurantName', (req, res) => {
     const restaurantName = req.params.restaurantName;
     const { tableNumber } = req.body;
     const safeName = path.basename(restaurantName);
 
-    if (!tableNumber) {
-        return res.status(400).json({ success: false, message: 'Table number is required' });
-    }
+    if (!tableNumber) return res.status(400).json({ success: false, message: 'Table number required' });
 
-    ensureRestaurantTables(safeName);
-    if (!tables[safeName]) {
-        tables[safeName] = {};
-    }
+    db.prepare(`
+        INSERT INTO tables_state (restaurant, table_number, is_open, can_order, status)
+        VALUES (?, ?, 0, 0, 'Valid')
+        ON CONFLICT(restaurant, table_number) DO NOTHING
+    `).run(safeName, String(tableNumber));
 
-    tables[safeName][String(tableNumber)] = { isOpen: false, canOrder: false, status: 'Valid' };
-    saveJSON(tablesFilePath, tables);
-    io.emit('state_update', { tables, tableRequests, orders });
+    io.emit('state_update', getAppState());
+    res.json({ success: true });
+});
 
-    res.json({ success: true, message: `Table #${tableNumber} added successfully` });
+app.delete('/api/tables/:restaurantName/:tableNumber', (req, res) => {
+    const { restaurantName, tableNumber } = req.params;
+    const safeName = path.basename(restaurantName);
+    db.prepare('DELETE FROM tables_state WHERE restaurant = ? AND table_number = ?').run(safeName, String(tableNumber));
+    io.emit('state_update', getAppState());
+    res.json({ success: true });
 });
 
 app.get('/api/menu/:restaurantName', (req, res) => {
-    const restaurantName = req.params.restaurantName;
-    const safeName = path.basename(restaurantName);
+    const safeName = path.basename(req.params.restaurantName);
     const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
-    res.json(loadJSON(menuFilePath, []));
+    if (fs.existsSync(menuFilePath)) {
+        res.json(JSON.parse(fs.readFileSync(menuFilePath, 'utf8')));
+    } else {
+        res.json([]);
+    }
 });
 
-// Menu Management Endpoints (Add, Edit, Delete)
 app.post('/api/menu/:restaurantName', (req, res) => {
-    const restaurantName = req.params.restaurantName;
-    const safeName = path.basename(restaurantName);
+    const safeName = path.basename(req.params.restaurantName);
     const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
-    let menu = loadJSON(menuFilePath, []);
+    let menu = [];
+    if (fs.existsSync(menuFilePath)) menu = JSON.parse(fs.readFileSync(menuFilePath, 'utf8'));
 
     const { category, nameEn, nameAr, price } = req.body;
     let cat = menu.find(c => c.categoryEn === category);
-
     const newItem = { id: uuidv4(), nameEn, nameAr: nameAr || nameEn, price: parseFloat(price) || 0 };
 
     if (cat) {
@@ -299,7 +355,7 @@ app.post('/api/menu/:restaurantName', (req, res) => {
         menu.push({ categoryEn: category, categoryAr: category, items: [newItem] });
     }
 
-    saveJSON(menuFilePath, menu);
+    fs.writeFileSync(menuFilePath, JSON.stringify(menu, null, 4), 'utf8');
     io.emit('menu_updated', { restaurant: safeName, menu });
     res.json({ success: true, item: newItem });
 });
@@ -308,25 +364,26 @@ app.put('/api/menu/:restaurantName/:itemId', (req, res) => {
     const { restaurantName, itemId } = req.params;
     const safeName = path.basename(restaurantName);
     const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
-    let menu = loadJSON(menuFilePath, []);
+    if (!fs.existsSync(menuFilePath)) return res.status(404).json({ success: false });
 
+    let menu = JSON.parse(fs.readFileSync(menuFilePath, 'utf8'));
     const { category, nameEn, nameAr, price } = req.body;
     let found = false;
 
     menu.forEach(cat => {
-        const itemIdx = cat.items.findIndex(i => i.id === itemId);
-        if (itemIdx !== -1) {
-            cat.items[itemIdx] = { ...cat.items[itemIdx], nameEn, nameAr: nameAr || nameEn, price: parseFloat(price) || 0 };
+        const idx = cat.items.findIndex(i => i.id === itemId);
+        if (idx !== -1) {
+            cat.items[idx] = { ...cat.items[idx], nameEn, nameAr: nameAr || nameEn, price: parseFloat(price) || 0 };
             found = true;
         }
     });
 
     if (found) {
-        saveJSON(menuFilePath, menu);
+        fs.writeFileSync(menuFilePath, JSON.stringify(menu, null, 4), 'utf8');
         io.emit('menu_updated', { restaurant: safeName, menu });
         res.json({ success: true });
     } else {
-        res.status(404).json({ success: false, message: 'Item not found' });
+        res.status(404).json({ success: false });
     }
 });
 
@@ -334,26 +391,26 @@ app.delete('/api/menu/:restaurantName/:itemId', (req, res) => {
     const { restaurantName, itemId } = req.params;
     const safeName = path.basename(restaurantName);
     const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
-    let menu = loadJSON(menuFilePath, []);
+    if (!fs.existsSync(menuFilePath)) return res.status(404).json({ success: false });
 
+    let menu = JSON.parse(fs.readFileSync(menuFilePath, 'utf8'));
     menu.forEach(cat => {
         cat.items = cat.items.filter(i => i.id !== itemId);
     });
 
-    saveJSON(menuFilePath, menu);
+    fs.writeFileSync(menuFilePath, JSON.stringify(menu, null, 4), 'utf8');
     io.emit('menu_updated', { restaurant: safeName, menu });
     res.json({ success: true });
 });
 
-// Revenue Endpoint
 app.get('/api/revenue', (req, res) => {
-    const history = loadJSON(paidHistoryFilePath, []);
+    const history = db.prepare('SELECT * FROM paid_history').all();
     const report = {};
 
     history.forEach(ord => {
         const resto = ord.restaurant || 'Default';
         const date = ord.date || new Date().toISOString().split('T')[0];
-        const tbl = String(ord.tableNumber);
+        const tbl = String(ord.table_number);
 
         if (!report[resto]) report[resto] = {};
         if (!report[resto][date]) report[resto][date] = {};

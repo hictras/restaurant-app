@@ -4,14 +4,12 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin Dashboard - Restaurant Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <!-- JSZip Library for exporting QR codes as ZIP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         .restaurant-select { appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f28538%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 9px auto; padding-right: 30px; }
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-6 max-w-6xl mx-auto">
-
     <div id="customModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center text-white">
             <div id="modalIcon" class="text-3xl mb-2">🔔</div>
@@ -21,7 +19,6 @@
         </div>
     </div>
 
-    <!-- QR Codes Print Modal -->
     <div id="qrPrintModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-gray-800">
             <div class="flex justify-between items-center mb-4 border-b pb-3">
@@ -53,7 +50,6 @@
         <button onclick="switchTab('revenue')" id="tab-revenue" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 text-gray-300 border border-gray-700 transition">4. Daily Revenue</button>
     </div>
 
-    <!-- Section 1: Tables & Table Setup -->
     <div id="section-tables" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 space-y-6">
         <div class="flex justify-between items-center border-b border-gray-700 pb-3">
             <h2 class="text-lg font-bold text-amber-400">🪑 Table Status & Activation Board</h2>
@@ -65,7 +61,6 @@
         <div id="tablesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
     </div>
 
-    <!-- Section 2: Menu Management -->
     <div id="section-menu" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 hidden">
         <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
             <h2 id="formTitle" class="text-lg font-bold text-amber-400">📋 Add / Edit Menu Item</h2>
@@ -88,13 +83,11 @@
         <div id="menuList" class="space-y-3"></div>
     </div>
 
-    <!-- Section 3: Bills & Payments -->
     <div id="section-bills" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 hidden">
         <h2 class="text-lg font-bold mb-4 text-amber-400">💵 Unpaid Bills & Active Accounts</h2>
         <div id="billsList" class="space-y-3"><p class="text-gray-400 italic text-sm">No active bills.</p></div>
     </div>
 
-    <!-- Section 4: Daily Revenue -->
     <div id="section-revenue" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 hidden">
         <h2 class="text-lg font-bold mb-4 text-amber-400">📊 Total Revenue by Table & Day</h2>
         <div id="revenueContainer" class="space-y-6"><p class="text-gray-400 italic text-sm">No settled revenue data available yet.</p></div>
@@ -196,14 +189,14 @@
         }
 
         // ==========================================
-        // 5. TABLE CREATION & MANAGEMENT
+        // 5. TABLE CREATION & DELETION
         // ==========================================
         async function addNewTable(e) {
             e.preventDefault();
             const tNum = document.getElementById('newTableNum').value.trim();
             if (!tNum) return;
             try {
-                const res = await fetch(`/api/tables/${currentAdminRestaurant}`, {
+                const res = await fetch(`/api/tables/${encodeURIComponent(currentAdminRestaurant)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tableNumber: tNum })
@@ -218,8 +211,23 @@
             }
         }
 
+        async function deleteTable(tableNum) {
+            if (!confirm(`Are you sure you want to delete Table #${tableNum}?`)) return;
+            try {
+                const res = await fetch(`/api/tables/${encodeURIComponent(currentAdminRestaurant)}/${encodeURIComponent(tableNum)}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showModal('Table Deleted', `Table #${tableNum} was removed successfully.`, '🗑️');
+                }
+            } catch (err) {
+                console.error('Failed to delete table:', err);
+            }
+        }
+
         // ==========================================
-        // 6. RENDER ADMIN BOARD & BILLS (JSON DRIVEN)
+        // 6. RENDER ADMIN BOARD & BILLS
         // ==========================================
         function renderAdmin() {
             const { tables, tableRequests, orders } = globalData;
@@ -246,9 +254,10 @@
                 gridContainer.innerHTML = tableKeys.map(k => {
                     const t = restoTables[k], isWaiting = restoRequests[k], isOccupied = activeTablesForResto.has(String(k));
                     return `
-                        <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'}">
+                        <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'} relative">
+                            <button onclick="deleteTable('${k}')" title="Delete Table" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xs font-bold transition">✕</button>
                             <div>
-                                <div class="flex justify-between items-center mb-1.5">
+                                <div class="flex justify-between items-center mb-1.5 pr-4">
                                     <span class="font-bold text-sm text-amber-300">Table #${k}</span>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${isOccupied ? 'bg-red-500 text-white' : 'bg-gray-800 border border-gray-600'}">${isOccupied ? 'Occupied' : t.status}</span>
                                 </div>
@@ -380,7 +389,7 @@
         }
 
         // ==========================================
-        // 9. QR CODE MODAL & ZIP EXPORT
+        // 9. QR CODE MODAL, CLICKABLE CARDS & ZIP EXPORT
         // ==========================================
         async function openPrintQRCodesModal() {
             if (!currentAdminRestaurant) return;
@@ -419,7 +428,6 @@
             for (const card of cards) {
                 const tableNum = card.getAttribute('data-table');
                 const imgEl = card.querySelector('.qr-img');
-
                 try {
                     const response = await fetch(imgEl.src);
                     const blob = await response.blob();
