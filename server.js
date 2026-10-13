@@ -100,11 +100,10 @@ db.exec(`
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
+        token TEXT PRIMARY KEY,
         restaurant TEXT,
         table_number TEXT,
-        token TEXT,
-        start_time INTEGER,
-        PRIMARY KEY (restaurant, table_number)
+        start_time INTEGER
     );
 `);
 
@@ -167,50 +166,62 @@ function encodeTableParam(text) {
     return Buffer.from(String(text)).toString('base64').replace(/=/g, '').split('').reverse().join('');
 }
 
+// API endpoint to validate token and return table & restaurant info
+app.get('/api/verify-token', (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ success: false, message: 'Missing token' });
+
+    const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
+    if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) {
+        return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    res.json({ success: true, restaurant: session.restaurant, tableNumber: session.table_number });
+});
+
 io.on('connection', (socket) => {
     socket.emit('state_update', getAppState());
 
-    socket.on('register_session', ({ restaurant, tableNumber, token }, callback) => {
-        const resto = restaurant || 'Default';
-        const tKey = String(tableNumber);
-        const sessionKey = `${resto}_${tKey}`;
-        const startTime = Date.now();
+    socket.on('register_session', ({ token }, callback) => {
+        const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
+        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) {
+            if (typeof callback === 'function') callback({ success: false, message: 'Invalid token' });
+            return;
+        }
 
-        db.prepare(`
-            INSERT INTO sessions (restaurant, table_number, token, start_time)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(restaurant, table_number)
-            DO UPDATE SET token = excluded.token, start_time = excluded.start_time
-        `).run(resto, tKey, token, startTime);
+        const resto = session.restaurant;
+        const tKey = session.table_number;
+        const sessionKey = `${resto}_${tKey}`;
 
         if (!tableSockets[sessionKey]) tableSockets[sessionKey] = new Set();
         tableSockets[sessionKey].add(socket.id);
         socket.tableSessionKey = sessionKey;
+        socket.tableToken = token;
 
-        // Ensure socket joins table room for targeted notifications
         socket.join(`table_${resto}_${tKey}`);
 
         io.emit('state_update', getAppState());
-        if (typeof callback === 'function') callback({ success: true });
+        if (typeof callback === 'function') callback({ success: true, restaurant: resto, tableNumber: tKey });
     });
 
-    socket.on('update_cart', ({ restaurant, tableNumber, cart }) => {
-        const resto = restaurant || 'Default';
-        const tKey = String(tableNumber);
-        socket.to(`table_${resto}_${tKey}`).emit('cart_synced', { cart });
+    socket.on('update_cart', ({ token, cart }) => {
+        const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
+        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) return;
+        socket.to(`table_${session.restaurant}_${session.table_number}`).emit('cart_synced', { cart });
     });
 
     socket.on('disconnect', () => {
         const sessionKey = socket.tableSessionKey;
+        const token = socket.tableToken;
         if (sessionKey && tableSockets[sessionKey]) {
             tableSockets[sessionKey].delete(socket.id);
 
             if (tableSockets[sessionKey].size === 0) {
                 delete tableSockets[sessionKey];
-                const lastUnderscore = sessionKey.lastIndexOf('_');
-                const resto = sessionKey.substring(0, lastUnderscore);
-                const tKey = sessionKey.substring(lastUnderscore + 1);
-                db.prepare('DELETE FROM sessions WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
+                const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
+                if (session && (Date.now() - session.start_time > 15 * 60 * 1000)) {
+                    db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+                }
             }
 
             io.emit('state_update', getAppState());
@@ -248,29 +259,26 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('table_request', ({ restaurant, tableNumber, token }) => {
-        const resto = restaurant || 'Default';
-        const tKey = String(tableNumber);
-
-        const session = db.prepare('SELECT * FROM sessions WHERE restaurant = ? AND table_number = ? AND token = ?').get(resto, tKey, token);
+    socket.on('table_request', ({ token }) => {
+        const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
         if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) return;
 
         db.prepare(`
             INSERT INTO table_requests (restaurant, table_number, requested) VALUES (?, ?, 1)
             ON CONFLICT(restaurant, table_number) DO UPDATE SET requested = 1
-        `).run(resto, tKey);
+        `).run(session.restaurant, session.table_number);
 
         io.emit('state_update', getAppState());
     });
 
-    socket.on('place_order', ({ tableNumber, restaurant, items, total, token }, callback) => {
-        const resto = restaurant || 'Default';
-        const tKey = String(tableNumber);
-
-        const session = db.prepare('SELECT * FROM sessions WHERE restaurant = ? AND table_number = ? AND token = ?').get(resto, tKey, token);
+    socket.on('place_order', ({ items, total, token }, callback) => {
+        const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
         if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) {
             return callback({ success: false, message: 'Session expired or unauthorized.' });
         }
+
+        const resto = session.restaurant;
+        const tKey = session.table_number;
 
         const tableState = db.prepare('SELECT * FROM tables_state WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
         if (!tableState || !tableState.is_open || !tableState.can_order) {
@@ -389,13 +397,17 @@ app.get('/api/qr-links', (req, res) => {
         const allLinks = [];
         restaurants.forEach(resto => {
             const restoTables = db.prepare('SELECT table_number FROM tables_state WHERE restaurant = ?').all(resto);
-            const encodedResto = encodeTableParam(resto);
             restoTables.forEach(t => {
-                const encodedTbl = encodeTableParam(t.table_number);
+                const token = 'tok_' + uuidv4().replace(/-/g, '') + Date.now().toString(36);
+                db.prepare(`
+                    INSERT INTO sessions (token, restaurant, table_number, start_time)
+                    VALUES (?, ?, ?, ?)
+                `).run(token, resto, String(t.table_number), Date.now());
+
                 allLinks.push({
                     restaurant: resto,
                     tableNumber: t.table_number,
-                    encodedUrl: `/customer.html?tbl=${encodedTbl}&rst=${encodedResto}`
+                    encodedUrl: `/menu.html?token=${token}`
                 });
             });
         });
