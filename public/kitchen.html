@@ -1,139 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Kitchen Display System - Restaurant Management</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Display System (KDS)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <style>
-        .restaurant-select { appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 9px auto; padding-right: 30px; }
-    </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-6">
-    <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 max-w-6xl mx-auto">
+<body class="bg-gray-900 text-white min-h-screen p-6 max-w-7xl mx-auto">
+
+    <header class="flex flex-wrap justify-between items-center mb-6 bg-gray-800 border border-gray-700 p-5 rounded-2xl shadow-lg gap-4">
         <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold flex items-center gap-2">🍳 Kitchen Display System <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
+            <h1 class="text-2xl font-bold text-amber-400 flex items-center gap-2">🍳 Kitchen Display <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
         </div>
+
+        <!-- Dynamic Restaurant Navigation Buttons (Shown only if restaurant has active orders) -->
+        <div id="restaurantNavButtons" class="flex flex-wrap items-center gap-2">
+            <!-- Dynamically populated -->
+        </div>
+
         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-700">
-                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Restaurant:</span>
-                <select id="kitchenRestaurantSelector" class="restaurant-select bg-transparent text-amber-400 font-bold text-sm focus:outline-none cursor-pointer" onchange="switchKitchenRestaurant(this.value)" title="Select Restaurant"></select>
-            </div>
-            <button onclick="requestNotificationPermission()" class="text-xs bg-amber-500 text-white px-3 py-2 rounded-xl font-semibold hover:bg-amber-600 transition">Enable Push 🔔</button>
-            <a href="admin.html" class="text-xs bg-indigo-600 px-3 py-2 rounded-xl font-semibold hover:bg-indigo-700 transition">Admin Panel 🛠️</a>
+            <a href="admin.html" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition">← Admin Panel</a>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto"><div id="ordersContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6"><p class="text-gray-400 italic">Waiting for active orders...</p></div></main>
+    <main class="space-y-6">
+        <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+            <h2 id="activeRestoTitle" class="text-xl font-bold text-amber-300">Active Kitchen Orders</h2>
+            <span id="orderCountBadge" class="bg-indigo-600 text-white text-xs px-3 py-1 rounded-full font-bold">0 Active Orders</span>
+        </div>
+
+        <div id="kitchenOrdersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="text-gray-400 italic">Loading kitchen orders...</p>
+        </div>
+    </main>
 
     <script>
         const socket = io();
-        let currentOrders = [];
-        let currentKitchenRestaurant = '';
+        let latestState = { tables: {}, tableRequests: {}, orders: [] };
+        let selectedKitchenRestaurant = '';
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         let previousOrderCount = 0;
 
-        window.onload = async () => {
-            if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
-            await loadKitchenRestaurantsList();
-        };
-
-        async function loadKitchenRestaurantsList() {
-            try {
-                const res = await fetch('/api/restaurants');
-                const restaurants = await res.json();
-                const selector = document.getElementById('kitchenRestaurantSelector');
-                selector.innerHTML = '';
-                restaurants.forEach(resto => {
-                    const option = document.createElement('option');
-                    option.value = resto; option.textContent = resto;
-                    selector.appendChild(option);
-                });
-                if (restaurants.length > 0) {
-                    currentKitchenRestaurant = restaurants[0];
-                    selector.value = currentKitchenRestaurant;
-                    renderKitchenOrders();
-                }
-            } catch (e) { console.error('Failed to load restaurants list', e); }
-        }
-
-        function switchKitchenRestaurant(restaurantName) {
-            currentKitchenRestaurant = restaurantName;
-            renderKitchenOrders();
-        }
-
-        function requestNotificationPermission() {
-            if ('Notification' in window) Notification.requestPermission().then(p => alert(p === 'granted' ? 'Push enabled!' : 'Denied.'));
-        }
-        function triggerSystemNotification(title, body) { if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body }); }
-
+        // ==========================================
+        // 1. SOCKET.IO & STATE LISTENER
+        // ==========================================
         socket.on('connect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block"; });
         socket.on('disconnect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-red-500 inline-block"; });
 
         socket.on('state_update', (data) => {
-            const activeKitchenOrders = (data.orders || []).filter(o => o.kitchenStatus !== 'Sent to Table');
-            if (activeKitchenOrders.length > previousOrderCount && previousOrderCount !== 0) {
-                alertSound.play().catch(e => console.log('Audio blocked.'));
-                triggerSystemNotification('New Order Received! 🍳', 'A new table order has arrived in the kitchen.');
+            latestState = data;
+            const orders = data.orders || [];
+
+            if (orders.length > previousOrderCount && previousOrderCount !== 0) {
+                alertSound.play().catch(e => console.log('Audio blocked:', e));
             }
-            previousOrderCount = activeKitchenOrders.length;
-            currentOrders = activeKitchenOrders;
-            renderKitchenOrders();
+            previousOrderCount = orders.length;
+            renderKitchen();
         });
 
-        function renderKitchenOrders() {
-            const container = document.getElementById('ordersContainer');
-            const filteredOrders = currentOrders.filter(o => !o.restaurant || o.restaurant === currentKitchenRestaurant);
+        // ==========================================
+        // 2. RENDER KITCHEN DISPLAY & RESTAURANT NAV BUTTONS
+        // ==========================================
+        function renderKitchen() {
+            const orders = latestState.orders || [];
 
+            // Find all unique restaurants that currently have active orders
+            const restaurantsWithOrders = [...new Set(orders.map(o => o.restaurant || 'Default'))];
+
+            // If selected restaurant has no active orders and others exist, switch to the first available one
+            if (!restaurantsWithOrders.includes(selectedKitchenRestaurant) && restaurantsWithOrders.length > 0) {
+                selectedKitchenRestaurant = restaurantsWithOrders[0];
+            } else if (restaurantsWithOrders.length === 0) {
+                selectedKitchenRestaurant = '';
+            }
+
+            // Render Restaurant Navigation Buttons in the Header
+            const navContainer = document.getElementById('restaurantNavButtons');
+            if (restaurantsWithOrders.length === 0) {
+                navContainer.innerHTML = `<span class="text-xs text-gray-400 italic">No restaurants with active orders</span>`;
+            } else {
+                navContainer.innerHTML = restaurantsWithOrders.map(resto => {
+                    const isActive = resto === selectedKitchenRestaurant;
+                    const restoOrderCount = orders.filter(o => (o.restaurant || 'Default') === resto).length;
+                    return `
+                        <button onclick="selectKitchenRestaurant('${resto}')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${isActive ? 'bg-amber-500 text-white shadow-md' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}">
+                            <span>🍽️ ${resto}</span>
+                            <span class="bg-black/30 text-white px-1.5 py-0.2 rounded-full text-[10px]">${restoOrderCount}</span>
+                        </button>`;
+                }).join('');
+            }
+
+            // Filter orders for the currently selected kitchen restaurant
+            const filteredOrders = orders.filter(o => (o.restaurant || 'Default') === selectedKitchenRestaurant);
+            document.getElementById('activeRestoTitle').innerText = selectedKitchenRestaurant ? `Orders for: ${selectedKitchenRestaurant}` : `Kitchen Display`;
+            document.getElementById('orderCountBadge').innerText = `${filteredOrders.length} Active Orders`;
+
+            const grid = document.getElementById('kitchenOrdersGrid');
             if (filteredOrders.length === 0) {
-                container.innerHTML = `<p class="text-gray-400 italic col-span-3 text-center py-10">No active kitchen orders for ${currentKitchenRestaurant || 'this restaurant'}.</p>`;
+                grid.innerHTML = `<p class="text-gray-400 italic col-span-full text-center py-12">No active orders in the kitchen for this restaurant.</p>`;
                 return;
             }
 
-            container.innerHTML = filteredOrders.map(o => `
-                <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+            grid.innerHTML = filteredOrders.map((ord, idx) => `
+                <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
                     <div>
-                        <div class="flex justify-between mb-3 border-b border-gray-700 pb-2 items-center">
-                            <span class="text-xl font-bold text-amber-400">Table #${o.tableNumber}</span>
-                            <span class="text-xs px-2.5 py-1 rounded font-semibold bg-blue-500/20 text-blue-300">${o.kitchenStatus}</span>
+                        <div class="flex justify-between items-center border-b border-gray-700 pb-3 mb-3">
+                            <span class="font-bold text-base text-amber-300">Table #${ord.tableNumber}</span>
+                            <span class="text-xs text-gray-400 font-mono">${ord.timestamp || ''}</span>
                         </div>
-                        
-                        <!-- Fixed Header for Radio Status Column -->
-                        <div class="flex justify-between items-center px-2 mb-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700/60 pb-1">
-                            <span>Item</span>
-                            <div class="flex gap-4 pr-1">
-                                <span class="text-amber-400 w-10 text-center">Cook</span>
-                                <span class="text-emerald-400 w-10 text-center">Ready</span>
-                            </div>
-                        </div>
-
-                        <ul class="space-y-2 mb-4 text-sm">
-                            ${o.items.map((item, itemIdx) => {
-                                if(!item.checks) item.checks = [false, false];
-                                const groupName = `item_status_${o.orderId}_${itemIdx}`;
+                        <ul class="space-y-3">
+                            ${(ord.items || []).map((i, itemIdx) => {
+                                const checks = i.checks || [false, false];
                                 return `
-                                    <li class="flex justify-between items-center bg-gray-700/40 p-2.5 rounded-lg">
-                                        <span class="font-medium">${item.qty}x${item.name}</span>
-                                        <div class="flex items-center gap-6 pr-2">
-                                            <label class="cursor-pointer flex justify-center w-10">
-                                                <input type="radio" name="${groupName}" ${item.checks[0] && !item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 0})" class="w-4 h-4 accent-amber-500">
-                                            </label>
-                                            <label class="cursor-pointer flex justify-center w-10">
-                                                <input type="radio" name="${groupName}" ${item.checks[1] ? 'checked' : ''} onchange="socket.emit('toggle_item_check', {orderId: '${o.orderId}', itemIndex:${itemIdx}, checkIndex: 1})" class="w-4 h-4 accent-emerald-500">
-                                            </label>
-                                        </div>
-                                    </li>`;
+                                <li class="bg-gray-700/50 border border-gray-600/60 p-3 rounded-xl flex flex-col gap-2">
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="font-bold text-white"><span class="text-amber-400">${i.qty}x</span>${i.name}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 pt-1">
+                                        <button onclick="socket.emit('toggle_item_check', { orderId: '${ord.orderId}', itemIndex:${itemIdx}, checkIndex: 0 })" class="py-1.5 rounded-lg text-xs font-bold transition ${checks[0] ? 'bg-amber-600 text-white' : 'bg-gray-600 text-gray-300 hover:bg-gray-500'}">
+                                            ${checks[0] ? '🔥 Cooking' : 'Start Cooking'}
+                                        </button>
+                                        <button onclick="socket.emit('toggle_item_check', { orderId: '${ord.orderId}', itemIndex:${itemIdx}, checkIndex: 1 })" class="py-1.5 rounded-lg text-xs font-bold transition ${checks[1] ? 'bg-emerald-600 text-white' : 'bg-gray-600 text-gray-300 hover:bg-gray-500'}">
+                                            ${checks[1] ? '✅ Ready' : 'Mark Ready'}
+                                        </button>
+                                    </div>
+                                </li>`;
                             }).join('')}
                         </ul>
                     </div>
+
                     <div class="space-y-2 pt-3 border-t border-gray-700">
-                        <div class="grid grid-cols-3 gap-1 text-xs font-semibold">
-                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Received'})" class="py-2 rounded transition ${o.kitchenStatus==='Received'?'bg-blue-600':'bg-gray-700 hover:bg-gray-600'}">Recv</button>
-                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Cooking'})" class="py-2 rounded transition ${o.kitchenStatus==='Cooking'?'bg-amber-600':'bg-gray-700 hover:bg-gray-600'}">Cook</button>
-                            <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Ready'})" class="py-2 rounded transition ${o.kitchenStatus==='Ready'?'bg-emerald-600':'bg-gray-700 hover:bg-gray-600'}">Ready</button>
+                        <div class="flex justify-between items-center text-xs font-bold text-gray-400">
+                            <span>Status: <span class="text-amber-300">${ord.kitchenStatus}</span></span>
+                            <span>Total: <span class="text-white">$${(ord.total || 0).toFixed(2)}</span></span>
                         </div>
-                        <button onclick="socket.emit('update_kitchen_status', {orderId: '${o.orderId}', kitchenStatus: 'Sent to Table'})" class="w-full bg-purple-600 hover:bg-purple-700 py-2.5 rounded-xl text-xs font-semibold transition shadow">Sent to Table 🚀</button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="socket.emit('update_kitchen_status', { orderId: '${ord.orderId}', kitchenStatus: 'Cooking' })" class="bg-amber-600 hover:bg-amber-700 py-2 rounded-xl text-xs font-bold transition text-white">
+                                Set Cooking 🍳
+                            </button>
+                            <button onclick="socket.emit('update_kitchen_status', { orderId: '${ord.orderId}', kitchenStatus: 'Sent to Table' })" class="bg-emerald-600 hover:bg-emerald-700 py-2 rounded-xl text-xs font-bold transition text-white">
+                                Send to Table 🚀
+                            </button>
+                        </div>
                     </div>
                 </div>`).join('');
+        }
+
+        function selectKitchenRestaurant(restoName) {
+            selectedKitchenRestaurant = restoName;
+            renderKitchen();
         }
     </script>
 </body>
