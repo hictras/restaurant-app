@@ -150,7 +150,6 @@
         let cart = {};
         let menuCategories = [];
         let itemLookup = {};
-        let sentToTableNotifiedIds = new Set();
         let latestServerState = { tables: {}, tableRequests: {}, orders: [] };
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
 
@@ -380,11 +379,17 @@
             tableIsOpen = !!restoTable.isOpen;
             canOrder = !!restoTable.canOrder;
 
-            if (!wasTableOpen && tableIsOpen) {
+            const hasSeenOpenNotice = sessionStorage.getItem(`seen_open_${currentRestaurant}_${currentTable}`);
+            if (!wasTableOpen && tableIsOpen && !hasSeenOpenNotice) {
+                sessionStorage.setItem(`seen_open_${currentRestaurant}_${currentTable}`, 'true');
+                activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                 showModal('Table Menu Activated!', 'The manager has activated your table menu. You can browse and add items!', '🎉');
             }
 
-            if (!wasCanOrder && canOrder) {
+            const hasSeenApprovalNotice = sessionStorage.getItem(`seen_approval_${currentRestaurant}_${currentTable}`);
+            if (!wasCanOrder && canOrder && !hasSeenApprovalNotice) {
+                sessionStorage.setItem(`seen_approval_${currentRestaurant}_${currentTable}`, 'true');
+                activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                 isWaitingForOrderPermission = false;
                 showModal('Order Approved! 🚀', 'The manager has unlocked your order button. You can now send your order!', '🚀');
             }
@@ -438,9 +443,14 @@
                 return matchesResto && matchesTable;
             });
 
+            let notifiedOrders = JSON.parse(sessionStorage.getItem(`notified_orders_${currentRestaurant}_${currentTable}`) || '[]');
+            let notifiedSet = new Set(notifiedOrders);
+
             tableOrders.forEach(ord => {
-                if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
-                    sentToTableNotifiedIds.add(ord.orderId);
+                if (ord.kitchenStatus === 'Sent to Table' && !notifiedSet.has(ord.orderId)) {
+                    notifiedSet.add(ord.orderId);
+                    sessionStorage.setItem(`notified_orders_${currentRestaurant}_${currentTable}`, JSON.stringify(Array.from(notifiedSet)));
+
                     showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared!`, '🍲');
                     triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
                 }
