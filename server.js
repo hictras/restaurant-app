@@ -187,6 +187,7 @@ io.on('connection', (socket) => {
         tableSockets[sessionKey].add(socket.id);
         socket.tableSessionKey = sessionKey;
 
+        // Ensure socket joins table room for targeted notifications
         socket.join(`table_${resto}_${tKey}`);
 
         io.emit('state_update', getAppState());
@@ -301,6 +302,13 @@ io.on('connection', (socket) => {
 
         const order = db.prepare('SELECT * FROM orders WHERE order_id = ?').get(orderId);
         if (order) {
+            if (kitchenStatus === 'Sent to Table') {
+                io.to(`table_${order.restaurant}_${order.tableNumber}`).emit('order_ready_alert', {
+                    orderId: order.order_id,
+                    tableNumber: order.table_number
+                });
+            }
+
             const sessionKey = `${order.restaurant}_${order.tableNumber}`;
             const subs = tablePushSubscriptions[sessionKey] || [];
 
