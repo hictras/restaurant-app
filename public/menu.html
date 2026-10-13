@@ -187,7 +187,6 @@
             await loadMenuFromServer(currentRestaurant);
         };
 
-        // Listen for real-time cart synchronization from other devices at the same table
         socket.on('cart_synced', (data) => {
             if (isExpired) return;
             cart = data.cart || {};
@@ -195,7 +194,6 @@
             renderMenu();
         });
 
-        // When any device at this table successfully places an order, clear cart, close drawer, and switch all devices to status view
         socket.on('order_placed_success', () => {
             if (isExpired) return;
             cart = {};
@@ -399,6 +397,15 @@
                 const matchesResto = (o.restaurant || 'Default') === currentRestaurant;
                 const matchesTable = String(o.tableNumber) === String(currentTable);
                 return matchesResto && matchesTable;
+            });
+
+            // Trigger notification when kitchen marks order as 'Sent to Table'
+            tableOrders.forEach(ord => {
+                if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
+                    sentToTableNotifiedIds.add(ord.orderId);
+                    activationSound.play().catch(e => console.log('Audio blocked:', e));
+                    showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared and sent to your table!`, '🍲');
+                }
             });
 
             const countBadge = document.getElementById('headerOrderStatusCount');
