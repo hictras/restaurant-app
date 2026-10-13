@@ -61,7 +61,7 @@
 
     <!-- Session Countdown Top Banner -->
     <div id="sessionTimerBanner" class="bg-amber-500 text-white text-xs font-bold py-1.5 px-4 text-center sticky top-0 z-50 flex justify-center items-center gap-2 shadow-sm">
-        <span>⏳ Session expires in:</span> <span id="countdownDisplay" class="bg-amber-600 px-2 py-0.5 rounded tracking-widest font-mono">15:00</span>
+        <span>⏳ Session expires in:</span> <span id="countdownDisplay" class="bg-amber-600 px-2 py-0.5 rounded tracking-widest font-mono">--:--</span>
     </div>
 
     <!-- Notification Modal -->
@@ -145,6 +145,7 @@
         let currentTable = null;
         let currentRestaurant = null;
         let currentToken = null;
+        let tokenLifetimeMinutes = 15;
         let tableIsOpen = false;
         let canOrder = false;
         let isWaitingForOrderPermission = false;
@@ -195,6 +196,7 @@
 
                 currentRestaurant = data.restaurant;
                 currentTable = data.tableNumber;
+                tokenLifetimeMinutes = data.lifetimeMinutes || 15;
 
             } catch (e) {
                 showErrorPage("Unable to verify session with the server.");
@@ -254,14 +256,14 @@
 
             setInterval(() => {
                 const now = Date.now();
-                const expirationTime = 15 * 60 * 1000;
+                const expirationTime = tokenLifetimeMinutes * 60 * 1000;
                 const elapsed = now - Number(startTime);
                 const remaining = expirationTime - elapsed;
 
                 if (remaining <= 0) {
                     localStorage.removeItem(sessionKey);
                     isExpired = true;
-                    showErrorPage("Your 15-minute session has expired. Please scan your table QR code again.");
+                    showErrorPage(`Your ${tokenLifetimeMinutes}-minute session has expired. Please scan your table QR code again.`);
                 } else {
                     const minutes = Math.floor(remaining / (1000 * 60));
                     const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
