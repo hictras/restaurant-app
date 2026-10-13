@@ -90,10 +90,14 @@ function syncTableStatuses() {
     if (changed) saveJSON(tablesFilePath, tables);
 }
 
+// Secure Obfuscation Helper for QR Codes
+function encodeTableParam(text) {
+    return Buffer.from(String(text)).toString('base64').replace(/=/g, '').split('').reverse().join('');
+}
+
 io.on('connection', (socket) => {
     socket.emit('state_update', { tables, tableRequests, orders });
 
-    // 1st Button: Toggle Table Menu Opening/Closing
     socket.on('toggle_table', ({ restaurant, tableNum }) => {
         const resto = restaurant || 'Default';
         ensureRestaurantTables(resto);
@@ -101,14 +105,13 @@ io.on('connection', (socket) => {
         if (tables[resto] && tables[resto][tKey]) {
             tables[resto][tKey].isOpen = !tables[resto][tKey].isOpen;
             if (!tables[resto][tKey].isOpen) {
-                tables[resto][tKey].canOrder = false; // Close order permission if table menu is closed
+                tables[resto][tKey].canOrder = false;
             }
             saveJSON(tablesFilePath, tables);
             io.emit('state_update', { tables, tableRequests, orders });
         }
     });
 
-    // 2nd Button: Toggle Order Permission (Open/Lock Order Button)
     socket.on('toggle_order_permission', ({ restaurant, tableNum }) => {
         const resto = restaurant || 'Default';
         ensureRestaurantTables(resto);
@@ -116,7 +119,7 @@ io.on('connection', (socket) => {
         if (tables[resto] && tables[resto][tKey]) {
             tables[resto][tKey].canOrder = !tables[resto][tKey].canOrder;
             if (tables[resto][tKey].canOrder && tableRequests[resto]) {
-                delete tableRequests[resto][tKey]; // Clear bell request when order button is approved
+                delete tableRequests[resto][tKey];
             }
             saveJSON(tablesFilePath, tables);
             saveJSON(requestsFilePath, tableRequests);
@@ -139,11 +142,11 @@ io.on('connection', (socket) => {
         const resto = restaurant || 'Default';
         ensureRestaurantTables(resto);
         const tKey = String(tableNumber);
-        
+
         if (!tables[resto][tKey] || !tables[resto][tKey].isOpen || !tables[resto][tKey].canOrder) {
             return callback({ success: false, message: 'Order submission is locked by the manager.' });
         }
-        
+
         const newOrder = {
             orderId: uuidv4(),
             tableNumber: tKey,
@@ -155,9 +158,9 @@ io.on('connection', (socket) => {
             date: new Date().toISOString().split('T')[0],
             timestamp: new Date().toLocaleTimeString()
         };
-        
+
         orders.push(newOrder);
-        tables[resto][tKey].canOrder = false; // Lock order button again after order is successfully sent
+        tables[resto][tKey].canOrder = false;
         saveJSON(ordersFilePath, orders);
         saveJSON(tablesFilePath, tables);
         syncTableStatuses();
@@ -179,8 +182,7 @@ io.on('connection', (socket) => {
         if (order && order.items[itemIndex]) {
             if (!order.items[itemIndex].checks) order.items[itemIndex].checks = [false, false];
             order.items[itemIndex].checks[checkIndex] = !order.items[itemIndex].checks[checkIndex];
-            
-            // Auto-update order main kitchen status if all items match a check state
+
             const items = order.items;
             const allCook = items.length > 0 && items.every(i => i.checks && i.checks[0] && !i.checks[1]);
             const allReady = items.length > 0 && items.every(i => i.checks && i.checks[1]);
@@ -221,13 +223,66 @@ io.on('connection', (socket) => {
 app.get('/api/restaurants', (req, res) => {
     try {
         const files = fs.readdirSync(restaurantsDir);
-        const restaurants = files
-            .filter(file => file.endsWith('.json'))
-            .map(file => path.basename(file, '.json'));
+        const restaurants = files.filter(f => f.endsWith('.json')).map(f => path.basename(f, '.json'));
         res.json(restaurants);
     } catch (e) {
         res.status(500).json({ error: 'Unable to scan restaurants directory' });
     }
+});
+
+// QR Links Generator Endpoint for Admin Printing (Filtered by Active Restaurant)
+app.get('/api/qr-links', (req, res) => {
+    try {
+        const targetResto = req.query.restaurant;
+        const files = fs.readdirSync(restaurantsDir);
+        let restaurants = files.filter(f => f.endsWith('.json')).map(f => path.basename(f, '.json'));
+
+        if (targetResto) {
+            restaurants = restaurants.filter(r => r === targetResto);
+        }
+
+        const allLinks = [];
+
+        restaurants.forEach(resto => {
+            ensureRestaurantTables(resto);
+            const restoTables = tables[resto] || {};
+            const encodedResto = encodeTableParam(resto);
+
+            for (let tNum in restoTables) {
+                const encodedTbl = encodeTableParam(tNum);
+                allLinks.push({
+                    restaurant: resto,
+                    tableNumber: tNum,
+                    encodedUrl: `/customer.html?tbl=${encodedTbl}&rst=${encodedResto}`
+                });
+            }
+        });
+        res.json(allLinks);
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to generate QR links' });
+    }
+});
+
+// Add Table Endpoint
+app.post('/api/tables/:restaurantName', (req, res) => {
+    const restaurantName = req.params.restaurantName;
+    const { tableNumber } = req.body;
+    const safeName = path.basename(restaurantName);
+
+    if (!tableNumber) {
+        return res.status(400).json({ success: false, message: 'Table number is required' });
+    }
+
+    ensureRestaurantTables(safeName);
+    if (!tables[safeName]) {
+        tables[safeName] = {};
+    }
+
+    tables[safeName][String(tableNumber)] = { isOpen: false, canOrder: false, status: 'Valid' };
+    saveJSON(tablesFilePath, tables);
+    io.emit('state_update', { tables, tableRequests, orders });
+
+    res.json({ success: true, message: `Table #${tableNumber} added successfully` });
 });
 
 app.get('/api/menu/:restaurantName', (req, res) => {
@@ -237,87 +292,88 @@ app.get('/api/menu/:restaurantName', (req, res) => {
     res.json(loadJSON(menuFilePath, []));
 });
 
+// Menu Management Endpoints (Add, Edit, Delete)
 app.post('/api/menu/:restaurantName', (req, res) => {
     const restaurantName = req.params.restaurantName;
     const safeName = path.basename(restaurantName);
     const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+    let menu = loadJSON(menuFilePath, []);
 
-    const { nameEn, nameAr, price, category } = req.body;
-    let menuCategories = loadJSON(menuFilePath, []);
-    const newItem = {
-        id: 'item_' + Date.now(),
-        nameEn: nameEn || 'New Item',
-        nameAr: nameAr || nameEn || 'صنف جديد',
-        price: parseFloat(price) || 0,
-        descEn: '', descAr: ''
-    };
-    let cat = menuCategories.find(c => c.categoryEn === category);
-    if (!cat) {
-        cat = { categoryEn: category || "Specials", categoryAr: "أطباق مميزة", items: [] };
-        menuCategories.push(cat);
+    const { category, nameEn, nameAr, price } = req.body;
+    let cat = menu.find(c => c.categoryEn === category);
+
+    const newItem = { id: uuidv4(), nameEn, nameAr: nameAr || nameEn, price: parseFloat(price) || 0 };
+
+    if (cat) {
+        cat.items.push(newItem);
+    } else {
+        menu.push({ categoryEn: category, categoryAr: category, items: [newItem] });
     }
-    cat.items.push(newItem);
-    saveJSON(menuFilePath, menuCategories);
-    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
+
+    saveJSON(menuFilePath, menu);
+    io.emit('menu_updated', { restaurant: safeName, menu });
     res.json({ success: true, item: newItem });
 });
 
-app.put('/api/menu/:restaurantName/:id', (req, res) => {
-    const restaurantName = req.params.restaurantName;
-    const id = req.params.id;
+app.put('/api/menu/:restaurantName/:itemId', (req, res) => {
+    const { restaurantName, itemId } = req.params;
     const safeName = path.basename(restaurantName);
     const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+    let menu = loadJSON(menuFilePath, []);
 
-    const { nameEn, nameAr, price, category } = req.body;
-    let menuCategories = loadJSON(menuFilePath, []);
-    let updatedItem = null;
+    const { category, nameEn, nameAr, price } = req.body;
+    let found = false;
 
-    menuCategories.forEach(cat => {
-        cat.items.forEach(item => {
-            if (item.id === id) {
-                if (nameEn !== undefined) item.nameEn = nameEn;
-                if (nameAr !== undefined) item.nameAr = nameAr || nameEn;
-                if (price !== undefined) item.price = parseFloat(price) || 0;
-                updatedItem = item;
-            }
-        });
+    menu.forEach(cat => {
+        const itemIdx = cat.items.findIndex(i => i.id === itemId);
+        if (itemIdx !== -1) {
+            cat.items[itemIdx] = { ...cat.items[itemIdx], nameEn, nameAr: nameAr || nameEn, price: parseFloat(price) || 0 };
+            found = true;
+        }
     });
 
-    saveJSON(menuFilePath, menuCategories);
-    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
-    res.json({ success: true, item: updatedItem });
+    if (found) {
+        saveJSON(menuFilePath, menu);
+        io.emit('menu_updated', { restaurant: safeName, menu });
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ success: false, message: 'Item not found' });
+    }
 });
 
-app.delete('/api/menu/:restaurantName/:id', (req, res) => {
-    const restaurantName = req.params.restaurantName;
-    const id = req.params.id;
+app.delete('/api/menu/:restaurantName/:itemId', (req, res) => {
+    const { restaurantName, itemId } = req.params;
     const safeName = path.basename(restaurantName);
     const menuFilePath = path.join(restaurantsDir, `${safeName}.json`);
+    let menu = loadJSON(menuFilePath, []);
 
-    let menuCategories = loadJSON(menuFilePath, []);
-    menuCategories.forEach(cat => { cat.items = cat.items.filter(i => i.id !== id); });
-    saveJSON(menuFilePath, menuCategories);
-    io.emit('menu_updated', { restaurant: safeName, menu: menuCategories });
+    menu.forEach(cat => {
+        cat.items = cat.items.filter(i => i.id !== itemId);
+    });
+
+    saveJSON(menuFilePath, menu);
+    io.emit('menu_updated', { restaurant: safeName, menu });
     res.json({ success: true });
 });
 
+// Revenue Endpoint
 app.get('/api/revenue', (req, res) => {
-    const allPaid = [...paidOrderHistory, ...orders.filter(o => o.billStatus === 'Paid')];
-    const revenueReport = {};
-    
-    allPaid.forEach(o => {
-        const resto = o.restaurant || 'Default';
-        const date = o.date || new Date().toISOString().split('T')[0];
-        const tbl = o.tableNumber;
+    const history = loadJSON(paidHistoryFilePath, []);
+    const report = {};
 
-        if (!revenueReport[resto]) revenueReport[resto] = {};
-        if (!revenueReport[resto][date]) revenueReport[resto][date] = {};
-        if (!revenueReport[resto][date][tbl]) revenueReport[resto][date][tbl] = 0;
-        
-        revenueReport[resto][date][tbl] += o.total;
+    history.forEach(ord => {
+        const resto = ord.restaurant || 'Default';
+        const date = ord.date || new Date().toISOString().split('T')[0];
+        const tbl = String(ord.tableNumber);
+
+        if (!report[resto]) report[resto] = {};
+        if (!report[resto][date]) report[resto][date] = {};
+        if (!report[resto][date][tbl]) report[resto][date][tbl] = 0;
+
+        report[resto][date][tbl] += (ord.total || 0);
     });
 
-    res.json(revenueReport);
+    res.json(report);
 });
 
 const PORT = process.env.PORT || 3000;

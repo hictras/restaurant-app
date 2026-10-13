@@ -328,5 +328,27 @@
         "billStatus": "Paid",
         "date": "2026-10-12",
         "timestamp": "2:59:11 PM"
+    },
+    {
+        "orderId": "f926de41-ffaa-4346-b0d9-de84ab72ca55",
+        "tableNumber": "1",
+        "restaurant": "KunLebnene",
+        "items": [
+            {
+                "id": "mixed_green_confit",
+                "name": "Mixed Green Confit",
+                "price": 16,
+                "qty": 1,
+                "checks": [
+                    true,
+                    true
+                ]
+            }
+        ],
+        "total": 16,
+        "kitchenStatus": "Sent to Table",
+        "billStatus": "Paid",
+        "date": "2026-10-13",
+        "timestamp": "10:02:02 AM"
     }
 ]

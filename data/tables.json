@@ -77,13 +77,14 @@
     },
     "KunLebnene": {
         "1": {
-            "isOpen": false,
+            "isOpen": true,
             "status": "Valid",
             "canOrder": false
         },
         "2": {
-            "isOpen": true,
-            "status": "Valid"
+            "isOpen": false,
+            "status": "Valid",
+            "canOrder": false
         },
         "3": {
             "isOpen": false,
@@ -99,6 +100,108 @@
         },
         "6": {
             "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "7": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        }
+    },
+    "patchi": {
+        "1": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "2": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "3": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "4": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "5": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "6": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        }
+    },
+    "settdeni": {
+        "1": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "2": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "3": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "4": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "5": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "6": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        }
+    },
+    "Zaytouna": {
+        "1": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "2": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "3": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "4": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "5": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "6": {
+            "isOpen": false,
+            "canOrder": false,
             "status": "Valid"
         }
     }

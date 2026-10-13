@@ -19,10 +19,9 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", Tahoma, sans-serif; }
         body { background-color: var(--bg); color: var(--text); padding-bottom: 140px; }
 
-        /* Force strict hiding when .hidden class is toggled */
         .hidden { display: none !important; }
 
-        .sticky-top-wrapper { position: sticky; top: 0; z-index: 50; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+        .sticky-top-wrapper { position: sticky; top: 28px; z-index: 50; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
         header { border-bottom: 1px solid var(--border); padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; max-width: 960px; margin: 0 auto; }
         .header-titles { text-align: left; }
         html[dir="rtl"] .header-titles { text-align: right; }
@@ -61,6 +60,11 @@
     </style>
 </head>
 <body>
+
+    <!-- Session Countdown Top Banner -->
+    <div id="sessionTimerBanner" class="bg-amber-500 text-white text-xs font-bold py-1.5 px-4 text-center sticky top-0 z-50 flex justify-center items-center gap-2 shadow-sm">
+        <span>⏳ Session expires in:</span> <span id="countdownDisplay" class="bg-amber-600 px-2 py-0.5 rounded tracking-widest font-mono">15:00</span>
+    </div>
 
     <div id="tableModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
@@ -122,7 +126,7 @@
         </div>
     </div>
 
-    <div class="cart-bar">
+    <div class="cart-bar" id="cartBarWrapper">
         <div id="activationWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium">
             ⏳ Order button is locked. Ring the bell below when ready to order.
         </div>
@@ -152,6 +156,7 @@
         let tableIsOpen = false;
         let canOrder = false;
         let isWaitingForOrderPermission = false;
+        let isExpired = false;
         let isCartOpen = false;
         let cart = {};
         let menuCategories = [];
@@ -166,32 +171,128 @@
             ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "طلب إذن إرسال الطلب من المدير 🛎️", waitingOrderPermission: "⏳ في انتظار تفعيل زر الطلب من المدير..." }
         };
 
+        function decodeParam(encodedText) {
+            try {
+                let rev = String(encodedText).split('').reverse().join('');
+                while (rev.length % 4 !== 0) { rev += '='; }
+                return atob(rev);
+            } catch (e) {
+                return encodedText;
+            }
+        }
+
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            let extractedTable = urlParams.get('tbl') || urlParams.get('table');
-            if (!extractedTable) {
+            let rawTbl = urlParams.get('tbl') || urlParams.get('table');
+            let rawRst = urlParams.get('rst');
+            let existingToken = urlParams.get('token');
+
+            if (!rawTbl) {
                 const searchStr = window.location.search.replace('?', '');
-                if (searchStr.startsWith('tbl')) extractedTable = searchStr.replace('tbl', '');
+                if (searchStr.startsWith('tbl')) rawTbl = searchStr.replace('tbl', '');
             }
-            if (extractedTable) {
-                currentTable = String(extractedTable);
+
+            if (rawTbl) {
+                currentTable = rawTbl.length > 5 || isNaN(rawTbl) ? decodeParam(rawTbl) : rawTbl;
                 localStorage.setItem('restaurant_table_number', currentTable);
             } else {
                 currentTable = localStorage.getItem('restaurant_table_number');
             }
-            if (!currentTable) document.getElementById('tableModal').classList.remove('hidden');
-            else {
+
+            if (rawRst) {
+                currentRestaurant = rawRst.length > 5 ? decodeParam(rawRst) : rawRst;
+                localStorage.setItem('restaurant_name', currentRestaurant);
+            } else {
+                currentRestaurant = localStorage.getItem('restaurant_name') || '';
+            }
+
+            if (currentTable) {
+                const sessionKey = `restaurant_session_${currentTable}`;
+                let sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+
+                if (existingToken) {
+                    sessionData.token = existingToken;
+                    if (!sessionData.startTime) sessionData.startTime = Date.now();
+                    localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+                } else {
+                    const newToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+                    const encodedTbl = btoa(String(currentTable)).replace(/=/g, '').split('').reverse().join('');
+                    const encodedRst = btoa(String(currentRestaurant || 'Default')).replace(/=/g, '').split('').reverse().join('');
+                    const newUrl = `${window.location.pathname}?tbl=${encodedTbl}&rst=${encodedRst}&token=${newToken}`;
+                    window.history.replaceState({ path: newUrl }, '', newUrl);
+
+                    localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: newToken }));
+                }
+            }
+
+            startSessionCountdown();
+
+            if (!currentTable || isExpired) {
+                if (isExpired) {
+                    showExpiredNotice();
+                } else {
+                    document.getElementById('tableModal').classList.remove('hidden');
+                }
+            } else {
                 document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
                 document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
             }
-            
+
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
             await loadRestaurantsList();
         };
 
+        function startSessionCountdown() {
+            if (!currentTable) return;
+            const sessionKey = `restaurant_session_${currentTable}`;
+
+            setInterval(() => {
+                const sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+                if (!sessionData.startTime) {
+                    isExpired = true;
+                    showExpiredNotice();
+                    return;
+                }
+
+                const now = Date.now();
+                const expirationTime = 15 * 60 * 1000;
+                const elapsed = now - sessionData.startTime;
+                const remaining = expirationTime - elapsed;
+
+                if (remaining <= 0) {
+                    localStorage.removeItem(sessionKey);
+                    isExpired = true;
+                    showExpiredNotice();
+                } else {
+                    const minutes = Math.floor(remaining / (1000 * 60));
+                    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                    document.getElementById('countdownDisplay').innerText =
+                        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function showExpiredNotice() {
+            isExpired = true;
+            document.getElementById('sessionTimerBanner').style.display = 'none';
+            document.querySelector('.sticky-top-wrapper').style.display = 'none';
+            document.querySelector('.cart-bar').style.display = 'none';
+            const menuContainer = document.getElementById('view-menu');
+            menuContainer.classList.remove('hidden');
+            menuContainer.style.display = 'block';
+            menuContainer.innerHTML = `
+                <div class="bg-white border border-red-200 rounded-2xl p-8 text-center max-w-md mx-auto mt-20 shadow-xl">
+                    <div class="text-5xl mb-3">⚠️</div>
+                    <h2 class="text-xl font-bold text-red-600 mb-2">Session Expired</h2>
+                    <p class="text-sm text-gray-600 mb-6">Your session has expired. Please scan the QR code at your table again to continue.</p>
+                </div>
+            `;
+        }
+
         function switchMainTab(tab) {
+            if (isExpired) return;
             const isMenu = tab === 'menu';
-            
+
             document.getElementById('mainTabMenu').classList.toggle('active', isMenu);
             document.getElementById('mainTabStatus').classList.toggle('active', !isMenu);
             document.getElementById('view-status').classList.toggle('hidden', isMenu);
@@ -202,13 +303,14 @@
         }
 
         async function loadRestaurantsList() {
+            if (isExpired) return;
             const selector = document.getElementById('restaurantSelector');
             selector.innerHTML = '';
-            
+
             try {
                 const res = await fetch('/api/restaurants');
                 const restaurants = await res.json();
-                
+
                 if (Array.isArray(restaurants) && restaurants.length > 0) {
                     restaurants.forEach(resto => {
                         const option = document.createElement('option');
@@ -216,7 +318,9 @@
                         option.textContent = resto;
                         selector.appendChild(option);
                     });
-                    currentRestaurant = restaurants[0];
+                    if (!currentRestaurant || !restaurants.includes(currentRestaurant)) {
+                        currentRestaurant = restaurants[0];
+                    }
                     selector.value = currentRestaurant;
                 } else {
                     const option = document.createElement('option');
@@ -239,7 +343,9 @@
         }
 
         async function switchRestaurant(restaurantName) {
+            if (isExpired) return;
             currentRestaurant = restaurantName;
+            localStorage.setItem('restaurant_name', currentRestaurant);
             cart = {};
             isWaitingForOrderPermission = false;
             updateCartUI();
@@ -248,6 +354,7 @@
         }
 
         async function loadMenuFromServer(restaurantName) {
+            if (isExpired) return;
             try {
                 const res = await fetch(`/api/menu/${restaurantName}`);
                 menuCategories = await res.json();
@@ -257,6 +364,7 @@
         }
 
         socket.on('menu_updated', (data) => {
+            if (isExpired) return;
             if (data && data.restaurant === currentRestaurant) {
                 menuCategories = data.menu;
                 rebuildLookup();
@@ -277,6 +385,7 @@
         }
 
         function showModal(title, message, icon = '🔔') {
+            if (isExpired) return;
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalMessage').innerText = message;
             document.getElementById('modalIcon').innerText = icon;
@@ -286,23 +395,24 @@
         function closeCustomModal() { document.getElementById('customModal').classList.add('hidden'); }
 
         socket.on('state_update', (data) => {
+            if (isExpired) return;
             latestServerState = data;
             evaluateTableState();
         });
 
         function evaluateTableState() {
-            if (!currentTable || !currentRestaurant) return;
+            if (isExpired || !currentTable || !currentRestaurant) return;
             const data = latestServerState;
-            
+
             const restoTables = (data.tables && data.tables[currentRestaurant]) || {};
             const restoTable = restoTables[currentTable] || { isOpen: false, canOrder: false, status: 'Valid' };
-            
+
             const wasTableOpen = tableIsOpen;
             const wasCanOrder = canOrder;
 
             tableIsOpen = !!restoTable.isOpen;
             canOrder = !!restoTable.canOrder;
-            
+
             if (!wasTableOpen && tableIsOpen) {
                 activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                 showModal('Table Menu Activated!', 'The manager has activated your table menu. You can browse and add items!', '🎉');
@@ -313,7 +423,7 @@
                 isWaitingForOrderPermission = false;
                 showModal('Order Approved! 🚀', 'The manager has unlocked your order button. You can now send your order!', '🚀');
             }
-            
+
             const restoRequests = (data.tableRequests && data.tableRequests[currentRestaurant]) || {};
             if (restoRequests[currentTable]) {
                 isWaitingForOrderPermission = true;
@@ -344,8 +454,7 @@
                 if (categoryNavWrapper) categoryNavWrapper.style.display = 'none';
             } else {
                 if (lockedNotice) lockedNotice.style.display = 'none';
-                
-                // CONDITIONAL CHECK: Menu shows ONLY if tableIsOpen (true) AND isMenuTabActive (true)
+
                 if (tableIsOpen && isMenuTabActive) {
                     menuContainer.classList.remove('hidden');
                     if (categoryNavWrapper) categoryNavWrapper.style.display = 'block';
@@ -363,7 +472,7 @@
                 const matchesTable = String(o.tableNumber) === String(currentTable);
                 return matchesResto && matchesTable;
             });
-            
+
             tableOrders.forEach(ord => {
                 if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
                     sentToTableNotifiedIds.add(ord.orderId);
@@ -377,7 +486,7 @@
             if (tableOrders.length > 0) {
                 countBadge.innerText = tableOrders.length;
                 countBadge.classList.remove('hidden');
-                
+
                 document.getElementById('fullStatusTrackerContainer').innerHTML = tableOrders.map((ord, idx) => `
                     <div class="bg-gray-50 border p-4 rounded-xl space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
@@ -412,6 +521,7 @@
         }
 
         function requestOrderApproval() {
+            if (isExpired) return;
             socket.emit('table_request', { restaurant: currentRestaurant, tableNumber: currentTable });
             isWaitingForOrderPermission = true;
             updateCartUI();
@@ -424,8 +534,14 @@
         }
 
         function saveTableSelection() {
+            if (isExpired) return;
             currentTable = String(document.getElementById('tableSelect').value);
             localStorage.setItem('restaurant_table_number', currentTable);
+
+            const newToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+            const sessionKey = `restaurant_session_${currentTable}`;
+            localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: newToken }));
+
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
             document.getElementById('tableModal').classList.add('hidden');
@@ -433,9 +549,10 @@
             evaluateTableState();
         }
 
-        function changeTable() { document.getElementById('tableModal').classList.remove('hidden'); }
+        function changeTable() { if (!isExpired) document.getElementById('tableModal').classList.remove('hidden'); }
 
         function toggleLanguage() {
+            if (isExpired) return;
             currentLang = currentLang === 'en' ? 'ar' : 'en';
             document.documentElement.lang = currentLang;
             document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
@@ -448,18 +565,21 @@
         }
 
         function toggleCartDrawer() {
+            if (isExpired) return;
             isCartOpen = !isCartOpen;
             document.getElementById('cartDetails').style.display = isCartOpen ? 'block' : 'none';
             document.getElementById('chevronIcon').style.transform = isCartOpen ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        function addToCart(id) { cart[id] = (cart[id] || 0) + 1; updateCartUI(); renderMenu(); }
+        function addToCart(id) { if (!isExpired) { cart[id] = (cart[id] || 0) + 1; updateCartUI(); renderMenu(); } }
         function changeQty(id, delta) {
+            if (isExpired) return;
             if (cart[id]) { cart[id] += delta; if (cart[id] <= 0) delete cart[id]; }
             updateCartUI(); renderMenu();
         }
 
         function updateCartUI() {
+            if (isExpired) return;
             const t = i18n[currentLang];
             const itemIds = Object.keys(cart);
             let total = 0, count = 0;
@@ -498,6 +618,7 @@
         }
 
         function renderMenu() {
+            if (isExpired) return;
             const container = document.getElementById('view-menu');
             const nav = document.getElementById('categoryNav');
             const t = i18n[currentLang];
@@ -522,7 +643,7 @@
                         const itemDesc = currentLang === 'ar' ? (item.descAr || item.descEn || '') : (item.descEn || '');
                         const badge = cart[item.id] > 0 ? `<span class="qty-badge-red">x${cart[item.id]}</span>` : '';
                         const priceVal = (item.price || 0).toFixed(2);
-                        
+
                         return `
                         <div class="card">
                             <div class="card-info">
@@ -547,6 +668,7 @@
         }
 
         function sendOrder() {
+            if (isExpired) return;
             if (!canOrder) {
                 requestOrderApproval();
                 return;

@@ -4,71 +4,99 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin Dashboard - Restaurant Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <!-- JSZip Library for exporting QR codes as ZIP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        .restaurant-select { appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234f46e5%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 9px auto; padding-right: 30px; }
+        .restaurant-select { appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f28538%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 9px auto; padding-right: 30px; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 p-6 max-w-5xl mx-auto">
+<body class="bg-gray-900 text-white min-h-screen p-6 max-w-6xl mx-auto">
 
-    <div id="customModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
+    <div id="customModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center text-white">
             <div id="modalIcon" class="text-3xl mb-2">🔔</div>
-            <h3 id="modalTitle" class="text-lg font-bold text-gray-800 mb-1">Notification</h3>
-            <p id="modalMessage" class="text-sm text-gray-600 mb-5">Message goes here...</p>
-            <button onclick="closeCustomModal()" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition">OK</button>
+            <h3 id="modalTitle" class="text-lg font-bold mb-1">Notification</h3>
+            <p id="modalMessage" class="text-sm text-gray-300 mb-5">Message goes here...</p>
+            <button onclick="closeCustomModal()" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-semibold text-sm transition">OK</button>
         </div>
     </div>
 
-    <header class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border">
-        <h1 class="text-2xl font-bold text-indigo-600 flex items-center gap-2">🍔 Management Console <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
-        <div class="flex items-center gap-3">
-            <select id="adminRestaurantSelector" class="restaurant-select border p-2 rounded-xl text-sm font-semibold bg-gray-50 text-indigo-600 focus:outline-none" onchange="switchAdminRestaurant(this.value)" title="Select Restaurant"></select>
+    <!-- QR Codes Print Modal -->
+    <div id="qrPrintModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-gray-800">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h2 id="qrModalTitle" class="text-xl font-bold">🖨️ Table QR Codes (Active Restaurant)</h2>
+                <div class="flex gap-2">
+                    <button onclick="downloadAllQRZip()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition">Download ZIP 📦</button>
+                    <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">Print Sheet 🖨️</button>
+                    <button onclick="document.getElementById('qrPrintModal').classList.add('hidden')" class="bg-gray-200 px-3 py-2 rounded-xl text-xs font-bold">Close ✕</button>
+                </div>
+            </div>
+            <div id="qrGridContainer" class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center"></div>
+        </div>
+    </div>
+
+    <header class="flex flex-wrap justify-between items-center mb-6 bg-gray-800 border border-gray-700 p-5 rounded-2xl shadow-lg gap-4">
+        <h1 class="text-2xl font-bold text-amber-400 flex items-center gap-2">🍔 Management Console <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
+        <div class="flex flex-wrap items-center gap-3">
+            <select id="adminRestaurantSelector" class="restaurant-select bg-gray-700 border border-gray-600 p-2.5 rounded-xl text-sm font-semibold text-amber-400 focus:outline-none cursor-pointer" onchange="switchAdminRestaurant(this.value)" title="Select Restaurant"></select>
+            <button onclick="openPrintQRCodesModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-semibold transition">🖨️ Print QR Codes</button>
             <button onclick="requestNotificationPermission()" class="text-xs bg-amber-500 text-white px-3 py-2 rounded-xl font-semibold hover:bg-amber-600 transition">Enable Push 🔔</button>
-            <a href="kitchen.html" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-black transition">Kitchen Display →</a>
+            <a href="kitchen.html" class="bg-gray-900 border border-gray-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-black transition">Kitchen Display →</a>
         </div>
     </header>
 
     <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-        <button onclick="switchTab('tables')" id="tab-tables" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow transition">1. Tables</button>
-        <button onclick="switchTab('menu')" id="tab-menu" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border transition">2. Menu Management</button>
-        <button onclick="switchTab('bills')" id="tab-bills" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border transition">3. Bills & Payments</button>
-        <button onclick="switchTab('revenue')" id="tab-revenue" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border transition">4. Daily Revenue</button>
+        <button onclick="switchTab('tables')" id="tab-tables" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-amber-500 text-white shadow transition">1. Tables</button>
+        <button onclick="switchTab('menu')" id="tab-menu" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 text-gray-300 border border-gray-700 transition">2. Menu Management</button>
+        <button onclick="switchTab('bills')" id="tab-bills" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 text-gray-300 border border-gray-700 transition">3. Bills & Payments</button>
+        <button onclick="switchTab('revenue')" id="tab-revenue" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 text-gray-300 border border-gray-700 transition">4. Daily Revenue</button>
     </div>
 
-    <div id="section-tables" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6">
-        <h2 class="text-lg font-bold mb-4 text-gray-800">🪑 Table Status & Activation Board</h2>
-        <div id="tablesGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
-    </div>
-
-    <div id="section-menu" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6 hidden">
-        <div class="flex justify-between items-center mb-4">
-            <h2 id="formTitle" class="text-lg font-bold text-gray-800">📋 Add / Edit Menu Item</h2>
-            <span id="activeMenuRestoLabel" class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-bold border border-indigo-100"></span>
+    <!-- Section 1: Tables & Table Setup -->
+    <div id="section-tables" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 space-y-6">
+        <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+            <h2 class="text-lg font-bold text-amber-400">🪑 Table Status & Activation Board</h2>
+            <form onsubmit="addNewTable(event)" class="flex gap-2">
+                <input type="text" id="newTableNum" placeholder="Table Number/Name" required class="bg-gray-700 border border-gray-600 px-3 py-1.5 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">+ Add Table</button>
+            </form>
         </div>
-        <form onsubmit="saveMenu(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6 bg-gray-50 p-4 rounded-xl border">
+        <div id="tablesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+    </div>
+
+    <!-- Section 2: Menu Management -->
+    <div id="section-menu" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 hidden">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-3">
+            <h2 id="formTitle" class="text-lg font-bold text-amber-400">📋 Add / Edit Menu Item</h2>
+            <span id="activeMenuRestoLabel" class="text-xs bg-gray-700 text-amber-300 px-3 py-1 rounded-lg font-bold border border-gray-600"></span>
+        </div>
+        <form onsubmit="saveMenu(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6 bg-gray-700/50 p-4 rounded-xl border border-gray-700">
             <input type="hidden" id="mId">
-            <input type="text" id="mName" placeholder="Item Name (EN)" required class="border p-2.5 rounded-lg text-sm bg-white">
-            <input type="number" step="0.01" id="mPrice" placeholder="Price ($)" required class="border p-2.5 rounded-lg text-sm bg-white">
-            <select id="mCat" class="border p-2.5 rounded-lg text-sm bg-white">
+            <input type="text" id="mName" placeholder="Item Name (EN)" required class="border border-gray-600 p-2.5 rounded-lg text-sm bg-gray-700 text-white focus:outline-none focus:border-amber-400">
+            <input type="number" step="0.01" id="mPrice" placeholder="Price ($)" required class="border border-gray-600 p-2.5 rounded-lg text-sm bg-gray-700 text-white focus:outline-none focus:border-amber-400">
+            <select id="mCat" class="border border-gray-600 p-2.5 rounded-lg text-sm bg-gray-700 text-white focus:outline-none focus:border-amber-400">
                 <option value="Salads & Veggies">Salads & Veggies</option>
                 <option value="Cold Mezza">Cold Mezza</option>
                 <option value="Coffee, Tea & Shisha">Coffee, Tea & Shisha</option>
             </select>
             <div class="flex gap-2">
-                <button id="submitBtn" class="flex-1 bg-indigo-600 text-white rounded-lg font-semibold text-sm hover:bg-indigo-700 transition py-2.5">Add Item</button>
-                <button type="button" id="cancelEditBtn" onclick="resetMenuForm()" class="hidden bg-gray-400 text-white rounded-lg font-semibold text-sm px-3 py-2.5">Cancel</button>
+                <button id="submitBtn" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold text-sm transition py-2.5">Add Item</button>
+                <button type="button" id="cancelEditBtn" onclick="resetMenuForm()" class="hidden bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-semibold text-sm px-3 py-2.5">Cancel</button>
             </div>
         </form>
         <div id="menuList" class="space-y-3"></div>
     </div>
 
-    <div id="section-bills" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6 hidden">
-        <h2 class="text-lg font-bold mb-4 text-gray-800">💵 Unpaid Bills & Active Accounts</h2>
+    <!-- Section 3: Bills & Payments -->
+    <div id="section-bills" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 hidden">
+        <h2 class="text-lg font-bold mb-4 text-amber-400">💵 Unpaid Bills & Active Accounts</h2>
         <div id="billsList" class="space-y-3"><p class="text-gray-400 italic text-sm">No active bills.</p></div>
     </div>
 
-    <div id="section-revenue" class="admin-section bg-white p-6 rounded-2xl shadow-sm border mb-6 hidden">
-        <h2 class="text-lg font-bold mb-4 text-gray-800">📊 Total Revenue by Table & Day</h2>
+    <!-- Section 4: Daily Revenue -->
+    <div id="section-revenue" class="admin-section bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-sm mb-6 hidden">
+        <h2 class="text-lg font-bold mb-4 text-amber-400">📊 Total Revenue by Table & Day</h2>
         <div id="revenueContainer" class="space-y-6"><p class="text-gray-400 italic text-sm">No settled revenue data available yet.</p></div>
     </div>
 
@@ -148,11 +176,31 @@
             currentTab = tabName;
             document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
             document.getElementById('section-' + tabName).classList.remove('hidden');
-            document.querySelectorAll('[id^="tab-"]').forEach(b => b.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border transition");
-            document.getElementById('tab-' + tabName).className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow transition";
+            document.querySelectorAll('[id^="tab-"]').forEach(b => b.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 text-gray-300 border border-gray-700 transition");
+            document.getElementById('tab-' + tabName).className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-amber-500 text-white shadow transition";
             if (tabName === 'tables') document.getElementById('tab-tables').classList.remove('animate-pulse', 'bg-red-600');
             if (tabName === 'menu') loadMenuAdmin();
             if (tabName === 'revenue') loadRevenueAdmin();
+        }
+
+        async function addNewTable(e) {
+            e.preventDefault();
+            const tNum = document.getElementById('newTableNum').value.trim();
+            if (!tNum) return;
+            try {
+                const res = await fetch(`/api/tables/${currentAdminRestaurant}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tableNumber: tNum })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('newTableNum').value = '';
+                    showModal('Table Added', `Table #${tNum} created successfully!`, '🪑');
+                }
+            } catch (err) {
+                console.error('Failed to add table:', err);
+            }
         }
 
         function renderAdmin() {
@@ -175,41 +223,39 @@
             if (hasPendingRequests && currentTab !== 'tables') {
                 tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-red-600 text-white animate-pulse shadow-lg border-2 border-red-300";
             } else if (currentTab !== 'tables') {
-                tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-gray-700 border transition";
+                tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 text-gray-300 border border-gray-700 transition";
             }
 
             document.getElementById('tablesGrid').innerHTML = Object.keys(restoTables).map(k => {
                 const t = restoTables[k], isWaiting = restoRequests[k], isOccupied = activeTablesForResto.has(String(k));
                 return `
-                    <div class="border p-4 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-100 border-red-400 text-red-900' : isWaiting ? 'bg-amber-100 border-amber-400 animate-pulse' : 'bg-emerald-50 border-emerald-200'}">
+                    <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'}">
                         <div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="font-bold text-base">Table #${k}</span>
-                                <span class="text-xs px-2 py-0.5 rounded font-bold ${isOccupied ? 'bg-red-500 text-white' : 'bg-white border'}">${isOccupied ? 'Occupied' : t.status}</span>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="font-bold text-sm text-amber-300">Table #${k}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${isOccupied ? 'bg-red-500 text-white' : 'bg-gray-800 border border-gray-600'}">${isOccupied ? 'Occupied' : t.status}</span>
                             </div>
-                            ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-bold mb-2">🛎️ Wants to Order!</span>' : ''}
-                            <p class="text-xs text-gray-600 mb-1">Menu: <b>${t.isOpen ? 'OPEN 🟢' : 'LOCKED 🔒'}</b></p>
-                            <p class="text-xs text-gray-600 mb-3">Order Button: <b>${t.canOrder ? 'ACTIVE 🟢' : 'LOCKED 🔒'}</b></p>
+                            ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold mb-1.5">🛎️ Wants to Order!</span>' : ''}
+                            <p class="text-[11px] text-gray-400 mb-0.5">Menu: <b>${t.isOpen ? 'OPEN 🟢' : 'LOCKED 🔒'}</b></p>
+                            <p class="text-[11px] text-gray-400 mb-2">Order: <b>${t.canOrder ? 'ACTIVE 🟢' : 'LOCKED 🔒'}</b></p>
                         </div>
-                        <div class="flex flex-col gap-2 mt-2">
-                            <!-- Button 1: Activate Table Menu -->
-                            <button onclick="socket.emit('toggle_table', {restaurant: '${currentAdminRestaurant}', tableNum: ${k}})" class="w-full py-2 rounded-lg text-xs font-semibold text-white transition ${t.isOpen ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}">
+                        <div class="flex flex-col gap-1.5 mt-1">
+                            <button onclick="socket.emit('toggle_table', {restaurant: '${currentAdminRestaurant}', tableNum: '${k}'})" class="w-full py-1.5 rounded-lg text-[11px] font-semibold text-white transition ${t.isOpen ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}">
                                 ${t.isOpen ? 'Close Menu 🔒' : '1. Open Menu 🔓'}
                             </button>
-                            <!-- Button 2: Activate Order Button -->
-                            <button onclick="socket.emit('toggle_order_permission', {restaurant: '${currentAdminRestaurant}', tableNum: ${k}})" class="w-full py-2 rounded-lg text-xs font-semibold text-white transition ${t.canOrder ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}">
-                                ${t.canOrder ? 'Lock Order Button 🔒' : '2. Open Order Button 🚀'}
+                            <button onclick="socket.emit('toggle_order_permission', {restaurant: '${currentAdminRestaurant}', tableNum: '${k}'})" class="w-full py-1.5 rounded-lg text-[11px] font-semibold text-white transition ${t.canOrder ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}">
+                                ${t.canOrder ? 'Lock Order 🔒' : '2. Open Order 🚀'}
                             </button>
                         </div>
                     </div>`;
             }).join('');
 
             document.getElementById('billsList').innerHTML = restaurantOrders.length === 0 ? '<p class="text-gray-400 italic text-sm">No active bills for this restaurant.</p>' : restaurantOrders.map(o => `
-                <div class="flex justify-between items-center border-b pb-3 text-sm">
-                    <div><b>Table #${o.tableNumber}</b> - Total: $${o.total.toFixed(2)} <span class="text-xs ml-2 px-2 py-0.5 rounded bg-gray-200">Kitchen: ${o.kitchenStatus}</span></div>
+                <div class="flex justify-between items-center border-b border-gray-700 pb-3 text-sm text-gray-300">
+                    <div><b>Table #${o.tableNumber}</b> - Total: <span class="text-amber-400 font-bold">$${o.total.toFixed(2)}</span> <span class="text-xs ml-2 px-2 py-0.5 rounded bg-gray-700 text-gray-300">Kitchen: ${o.kitchenStatus}</span></div>
                     <div class="flex items-center gap-3">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${o.billStatus==='Paid'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${o.billStatus}</span>
-                        <button onclick="socket.emit('update_bill_status', {orderId: '${o.orderId}', billStatus: '${o.billStatus === 'Paid' ? 'Unpaid' : 'Paid'}'})" class="bg-gray-800 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-black transition">Toggle Paid</button>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${o.billStatus==='Paid'?'bg-emerald-900/60 text-emerald-300':'bg-amber-900/60 text-amber-300'}">${o.billStatus}</span>
+                        <button onclick="socket.emit('update_bill_status', {orderId: '${o.orderId}', billStatus: '${o.billStatus === 'Paid' ? 'Unpaid' : 'Paid'}'})" class="bg-gray-700 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-gray-600 transition">Toggle Paid</button>
                         ${o.billStatus === 'Paid' ? `<button onclick="socket.emit('clear_bill', {orderId: '${o.orderId}'})" class="bg-rose-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-rose-700 transition">Clear ✓</button>` : ''}
                     </div>
                 </div>`).join('');
@@ -220,10 +266,10 @@
             const res = await fetch(`/api/menu/${currentAdminRestaurant}`);
             const cats = await res.json();
             document.getElementById('menuList').innerHTML = cats.map(cat => `
-                <h3 class="font-bold text-indigo-600 mt-4 mb-2 text-sm uppercase tracking-wide border-b pb-1">${cat.categoryEn}</h3>
+                <h3 class="font-bold text-amber-400 mt-4 mb-2 text-sm uppercase tracking-wide border-b border-gray-700 pb-1">${cat.categoryEn}</h3>
                 ${cat.items.map(m => `
-                    <div class="flex justify-between items-center border-b py-2 text-sm">
-                        <span><b>${m.nameEn}</b> — <span class="text-indigo-600 font-bold">$${(m.price || 0).toFixed(2)}</span></span>
+                    <div class="flex justify-between items-center border-b border-gray-700 py-2 text-sm text-gray-300">
+                        <span><b>${m.nameEn}</b> — <span class="text-amber-400 font-bold">$${(m.price || 0).toFixed(2)}</span></span>
                         <div class="flex gap-2">
                             <button onclick='startEditMenu(${JSON.stringify(m)}, "${cat.categoryEn}")' class="bg-amber-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-amber-600 transition">Edit</button>
                             <button onclick="deleteMenu('${m.id}')" class="bg-rose-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-rose-600 transition">Delete</button>
@@ -287,14 +333,14 @@
                     const tableRevenues = restoData[date];
                     let dailyTotal = Object.values(tableRevenues).reduce((a, b) => a + b, 0);
                     return `
-                        <div class="border rounded-xl p-4 bg-gray-50 mb-3">
-                            <div class="flex justify-between items-center mb-3 border-b pb-2">
-                                <h4 class="font-bold text-gray-800">📅 Date: ${date}</h4>
-                                <span class="bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold">Total: $${dailyTotal.toFixed(2)}</span>
+                        <div class="border border-gray-700 rounded-xl p-4 bg-gray-700/30 mb-3 text-gray-300">
+                            <div class="flex justify-between items-center mb-3 border-b border-gray-600 pb-2">
+                                <h4 class="font-bold text-amber-400">📅 Date: ${date}</h4>
+                                <span class="bg-emerald-900/60 text-emerald-300 text-xs px-3 py-1 rounded-full font-bold">Total: $${dailyTotal.toFixed(2)}</span>
                             </div>
                             <div class="space-y-1">${Object.keys(tableRevenues).map(tbl => `
-                                <div class="flex justify-between border-b py-1.5 text-sm">
-                                    <span class="font-medium text-gray-700">Table #${tbl}</span>                                     <span class="font-bold text-emerald-600">$${tableRevenues[tbl].toFixed(2)}</span>
+                                <div class="flex justify-between border-b border-gray-700/50 py-1.5 text-sm">
+                                    <span class="font-medium text-gray-300">Table #${tbl}</span> <span class="font-bold text-emerald-400">$${tableRevenues[tbl].toFixed(2)}</span>
                                 </div>`).join('')}</div>
                         </div>`;
                 }).join('');
@@ -307,6 +353,64 @@
                 await fetch(`/api/menu/${currentAdminRestaurant}/${id}`, { method: 'DELETE' });
                 loadMenuAdmin();
             }
+        }
+
+        async function openPrintQRCodesModal() {
+            if (!currentAdminRestaurant) return;
+            document.getElementById('qrModalTitle').innerText = `🖨️ Table QR Codes (${currentAdminRestaurant})`;
+
+            const res = await fetch(`/api/qr-links?restaurant=${encodeURIComponent(currentAdminRestaurant)}`);
+            const links = await res.json();
+            const container = document.getElementById('qrGridContainer');
+
+            container.innerHTML = links.map(l => {
+                const fullUrl = window.location.origin + l.encodedUrl;
+                const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(fullUrl)}`;
+                return `
+                    <div class="border border-gray-200 p-4 rounded-xl shadow-sm bg-gray-50 flex flex-col items-center qr-card" data-table="${l.tableNumber}">
+                        <h3 class="font-bold text-base text-gray-800 mb-1">${l.restaurant}</h3>
+                        <span class="text-sm font-semibold text-indigo-600 mb-3">Table #${l.tableNumber}</span>
+                        <img src="${qrApi}" crossorigin="anonymous" alt="QR Table ${l.tableNumber}" class="w-32 h-32 mb-3 border p-1 bg-white rounded qr-img">
+                        <span class="text-[10px] text-gray-400 break-all font-mono">${l.encodedUrl}</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('qrPrintModal').classList.remove('hidden');
+        }
+
+        async function downloadAllQRZip() {
+            const zip = new JSZip();
+            const folder = zip.folder(`${currentAdminRestaurant}_QR_Codes`);
+            const cards = document.querySelectorAll('.qr-card');
+
+            if (cards.length === 0) {
+                alert('No QR codes found to download.');
+                return;
+            }
+
+            for (const card of cards) {
+                const tableNum = card.getAttribute('data-table');
+                const imgEl = card.querySelector('.qr-img');
+
+                try {
+                    // Fetch QR image as blob
+                    const response = await fetch(imgEl.src);
+                    const blob = await response.blob();
+                    folder.file(`Table_${tableNum}.png`, blob);
+                } catch (e) {
+                    console.error(`Failed to download QR for table ${tableNum}`, e);
+                }
+            }
+
+            // Generate ZIP file and trigger download
+            const content = await zip.generateAsync({ type: 'blob' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `${currentAdminRestaurant}_Table_QR_Codes.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
