@@ -25,12 +25,10 @@
         header { border-bottom: 1px solid var(--border); padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; max-width: 960px; margin: 0 auto; }
         .header-titles { text-align: left; }
         html[dir="rtl"] .header-titles { text-align: right; }
-        header h1 { font-size: 1.4rem; color: var(--primary); letter-spacing: 0.5px; line-height: 1.2; }
+        header h1 { font-size: 1.3rem; color: var(--primary); letter-spacing: 0.5px; line-height: 1.2; }
         header p { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
 
-        .lang-btn, .table-btn, .push-btn, .restaurant-select { background: #fff; border: 1.5px solid var(--primary); color: var(--primary); padding: 5px 10px; border-radius: 20px; font-weight: 700; cursor: pointer; font-size: 0.8rem; white-space: nowrap; transition: all 0.2s ease; outline: none; }
-        .restaurant-select { appearance: none; padding-right: 25px; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f28538%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 9px auto; }
-        .lang-btn:hover, .table-btn:hover, .push-btn:hover, .restaurant-select:hover { background: var(--primary); color: #fff; }
+        .lang-btn, .table-pill, .push-btn { background: #fff; border: 1.5px solid var(--primary); color: var(--primary); padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; white-space: nowrap; outline: none; }
 
         .main-nav-tabs { display: flex; background: #fdfbf7; border-bottom: 1px solid var(--border); max-width: 960px; margin: 0 auto; }
         .main-tab-btn { flex: 1; padding: 12px; text-align: center; font-weight: bold; font-size: 0.9rem; background: none; border: none; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; transition: all 0.2s; }
@@ -66,17 +64,6 @@
         <span>⏳ Session expires in:</span> <span id="countdownDisplay" class="bg-amber-600 px-2 py-0.5 rounded tracking-widest font-mono">15:00</span>
     </div>
 
-    <div id="tableModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
-            <h2 class="text-xl font-bold mb-2 text-gray-800">Select Your Table</h2>
-            <select id="tableSelect" class="w-full border p-3 rounded-xl mb-4 text-center font-bold text-lg bg-gray-50">
-                <option value="1">Table #1</option><option value="2">Table #2</option><option value="3">Table #3</option>
-                <option value="4">Table #4</option><option value="5">Table #5</option><option value="6">Table #6</option>
-            </select>
-            <button onclick="saveTableSelection()" class="w-full bg-[#f28538] text-white py-3 rounded-xl font-semibold">Confirm Table 🚀</button>
-        </div>
-    </div>
-
     <div id="customModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
             <div id="modalIcon" class="text-3xl mb-2">🔔</div>
@@ -93,9 +80,8 @@
                 <p id="brandSubtitle">Prices in USD (Includes VAT & Service)</p>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
-                <select id="restaurantSelector" class="restaurant-select" onchange="switchRestaurant(this.value)" title="Select Restaurant"></select>
                 <button class="push-btn" onclick="requestNotificationPermission()" title="Enable Notifications">🔔</button>
-                <button class="table-btn" id="tableBtnDisplay" onclick="changeTable()">Table --</button>
+                <div class="table-pill" id="tableBtnDisplay">Table --</div>
                 <button class="lang-btn" id="langToggleBtn" onclick="toggleLanguage()">عربي</button>
             </div>
         </header>
@@ -153,6 +139,7 @@
         const socket = io();
         let currentLang = 'en';
         let currentTable = null;
+        let currentRestaurant = null;
         let tableIsOpen = false;
         let canOrder = false;
         let isWaitingForOrderPermission = false;
@@ -161,7 +148,6 @@
         let cart = {};
         let menuCategories = [];
         let itemLookup = {};
-        let currentRestaurant = '';
         let sentToTableNotifiedIds = new Set();
         let latestServerState = { tables: {}, tableRequests: {}, orders: [] };
         const activationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3');
@@ -194,57 +180,65 @@
 
             if (rawTbl) {
                 currentTable = rawTbl.length > 5 || isNaN(rawTbl) ? decodeParam(rawTbl) : rawTbl;
-                localStorage.setItem('restaurant_table_number', currentTable);
-            } else {
-                currentTable = localStorage.getItem('restaurant_table_number');
             }
-
             if (rawRst) {
                 currentRestaurant = rawRst.length > 5 ? decodeParam(rawRst) : rawRst;
-                localStorage.setItem('restaurant_name', currentRestaurant);
-            } else {
-                currentRestaurant = localStorage.getItem('restaurant_name') || '';
             }
 
-            if (currentTable) {
-                const sessionKey = `restaurant_session_${currentTable}`;
-                let sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+            // Enforce strict scanning requirement (No manual fallback if missing QR parameters)
+            if (!currentTable || !currentRestaurant) {
+                showScanErrorNotice();
+                return;
+            }
 
-                if (existingToken) {
-                    sessionData.token = existingToken;
-                    if (!sessionData.startTime) sessionData.startTime = Date.now();
-                    localStorage.setItem(sessionKey, JSON.stringify(sessionData));
-                } else {
-                    const newToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-                    const encodedTbl = btoa(String(currentTable)).replace(/=/g, '').split('').reverse().join('');
-                    const encodedRst = btoa(String(currentRestaurant || 'Default')).replace(/=/g, '').split('').reverse().join('');
-                    const newUrl = `${window.location.pathname}?tbl=${encodedTbl}&rst=${encodedRst}&token=${newToken}`;
-                    window.history.replaceState({ path: newUrl }, '', newUrl);
+            // Session validation via token
+            const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
+            let sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
 
-                    localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: newToken }));
-                }
+            if (existingToken) {
+                sessionData.token = existingToken;
+                if (!sessionData.startTime) sessionData.startTime = Date.now();
+                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+            } else {
+                const newToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+                const encodedTbl = btoa(String(currentTable)).replace(/=/g, '').split('').reverse().join('');
+                const encodedRst = btoa(String(currentRestaurant)).replace(/=/g, '').split('').reverse().join('');
+                const newUrl = `${window.location.pathname}?tbl=${encodedTbl}&rst=${encodedRst}&token=${newToken}`;
+                window.history.replaceState({ path: newUrl }, '', newUrl);
+
+                localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: newToken }));
             }
 
             startSessionCountdown();
 
-            if (!currentTable || isExpired) {
-                if (isExpired) {
-                    showExpiredNotice();
-                } else {
-                    document.getElementById('tableModal').classList.remove('hidden');
-                }
-            } else {
-                document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
-                document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
-            }
+            document.getElementById('brandTitle').innerText = currentRestaurant.toUpperCase();
+            document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
+            document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
 
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
-            await loadRestaurantsList();
+
+            await loadMenuFromServer(currentRestaurant);
         };
 
+        function showScanErrorNotice() {
+            document.getElementById('sessionTimerBanner').style.display = 'none';
+            document.querySelector('.sticky-top-wrapper').style.display = 'none';
+            document.querySelector('.cart-bar').style.display = 'none';
+            const menuContainer = document.getElementById('view-menu');
+            menuContainer.classList.remove('hidden');
+            menuContainer.style.display = 'block';
+            menuContainer.innerHTML = `
+                <div class="bg-white border border-amber-200 rounded-2xl p-8 text-center max-w-md mx-auto mt-20 shadow-xl">
+                    <div class="text-5xl mb-3">📷</div>
+                    <h2 class="text-xl font-bold text-gray-800 mb-2">QR Code Required</h2>
+                    <p class="text-sm text-gray-600 mb-6">Please scan the official QR code on your table to access the menu and place orders.</p>
+                </div>
+            `;
+        }
+
         function startSessionCountdown() {
-            if (!currentTable) return;
-            const sessionKey = `restaurant_session_${currentTable}`;
+            if (!currentTable || !currentRestaurant) return;
+            const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
 
             setInterval(() => {
                 const sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
@@ -300,57 +294,6 @@
             const showMenu = tableIsOpen && isMenu;
             document.getElementById('view-menu').classList.toggle('hidden', !showMenu);
             document.getElementById('categoryNavWrapper').style.display = showMenu ? 'block' : 'none';
-        }
-
-        async function loadRestaurantsList() {
-            if (isExpired) return;
-            const selector = document.getElementById('restaurantSelector');
-            selector.innerHTML = '';
-
-            try {
-                const res = await fetch('/api/restaurants');
-                const restaurants = await res.json();
-
-                if (Array.isArray(restaurants) && restaurants.length > 0) {
-                    restaurants.forEach(resto => {
-                        const option = document.createElement('option');
-                        option.value = resto;
-                        option.textContent = resto;
-                        selector.appendChild(option);
-                    });
-                    if (!currentRestaurant || !restaurants.includes(currentRestaurant)) {
-                        currentRestaurant = restaurants[0];
-                    }
-                    selector.value = currentRestaurant;
-                } else {
-                    const option = document.createElement('option');
-                    option.value = 'Default';
-                    option.textContent = 'Default';
-                    selector.appendChild(option);
-                    currentRestaurant = 'Default';
-                }
-            } catch (e) {
-                console.error('Error fetching restaurants:', e);
-                const option = document.createElement('option');
-                option.value = 'Default';
-                option.textContent = 'Default';
-                selector.appendChild(option);
-                currentRestaurant = 'Default';
-            }
-
-            await loadMenuFromServer(currentRestaurant);
-            evaluateTableState();
-        }
-
-        async function switchRestaurant(restaurantName) {
-            if (isExpired) return;
-            currentRestaurant = restaurantName;
-            localStorage.setItem('restaurant_name', currentRestaurant);
-            cart = {};
-            isWaitingForOrderPermission = false;
-            updateCartUI();
-            await loadMenuFromServer(restaurantName);
-            evaluateTableState();
         }
 
         async function loadMenuFromServer(restaurantName) {
@@ -532,24 +475,6 @@
             itemLookup = {};
             menuCategories.forEach(cat => cat.items.forEach(item => itemLookup[item.id] = item));
         }
-
-        function saveTableSelection() {
-            if (isExpired) return;
-            currentTable = String(document.getElementById('tableSelect').value);
-            localStorage.setItem('restaurant_table_number', currentTable);
-
-            const newToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
-            const sessionKey = `restaurant_session_${currentTable}`;
-            localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: newToken }));
-
-            document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
-            document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
-            document.getElementById('tableModal').classList.add('hidden');
-            activationSound.play().catch(e => console.log('Audio unlock error:', e));
-            evaluateTableState();
-        }
-
-        function changeTable() { if (!isExpired) document.getElementById('tableModal').classList.remove('hidden'); }
 
         function toggleLanguage() {
             if (isExpired) return;
