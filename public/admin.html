@@ -108,6 +108,9 @@
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         let previousPendingCount = 0;
 
+        // ==========================================
+        // 1. INITIALIZATION & RESTAURANT LOADER
+        // ==========================================
         window.onload = async () => {
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
             await loadAdminRestaurantsList();
@@ -141,6 +144,9 @@
             renderAdmin();
         }
 
+        // ==========================================
+        // 2. NOTIFICATIONS & MODALS
+        // ==========================================
         function requestNotificationPermission() {
             if ('Notification' in window) {
                 Notification.requestPermission().then(p => showModal('Notifications', p === 'granted' ? 'Push enabled!' : 'Denied.', p === 'granted' ? '🎉' : '⚠️'));
@@ -155,6 +161,9 @@
         }
         function closeCustomModal() { document.getElementById('customModal').classList.add('hidden'); }
 
+        // ==========================================
+        // 3. SOCKET.IO CONNECTION & STATE SYNC
+        // ==========================================
         socket.on('connect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block"; });
         socket.on('disconnect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-red-500 inline-block"; });
 
@@ -172,6 +181,9 @@
 
         socket.on('menu_updated', (data) => { if (data && data.restaurant === currentAdminRestaurant) loadMenuAdmin(); });
 
+        // ==========================================
+        // 4. TAB NAVIGATION CONTROLLER
+        // ==========================================
         function switchTab(tabName) {
             currentTab = tabName;
             document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
@@ -183,6 +195,9 @@
             if (tabName === 'revenue') loadRevenueAdmin();
         }
 
+        // ==========================================
+        // 5. TABLE CREATION & MANAGEMENT
+        // ==========================================
         async function addNewTable(e) {
             e.preventDefault();
             const tNum = document.getElementById('newTableNum').value.trim();
@@ -203,6 +218,9 @@
             }
         }
 
+        // ==========================================
+        // 6. RENDER ADMIN BOARD & BILLS
+        // ==========================================
         function renderAdmin() {
             const { tables, tableRequests, orders } = globalData;
             const restoTables = (tables && tables[currentAdminRestaurant]) || {
@@ -261,6 +279,9 @@
                 </div>`).join('');
         }
 
+        // ==========================================
+        // 7. MENU MANAGEMENT & EDITOR
+        // ==========================================
         async function loadMenuAdmin() {
             if (!currentAdminRestaurant) return;
             const res = await fetch(`/api/menu/${currentAdminRestaurant}`);
@@ -320,6 +341,17 @@
             loadMenuAdmin();
         }
 
+        async function deleteMenu(id) {
+            if (!currentAdminRestaurant) return;
+            if (confirm('Are you sure you want to delete this item?')) {
+                await fetch(`/api/menu/${currentAdminRestaurant}/${id}`, { method: 'DELETE' });
+                loadMenuAdmin();
+            }
+        }
+
+        // ==========================================
+        // 8. REVENUE REPORTS LOADER
+        // ==========================================
         async function loadRevenueAdmin() {
             const res = await fetch('/api/revenue');
             const revenueData = await res.json();
@@ -347,14 +379,9 @@
             }
         }
 
-        async function deleteMenu(id) {
-            if (!currentAdminRestaurant) return;
-            if (confirm('Are you sure you want to delete this item?')) {
-                await fetch(`/api/menu/${currentAdminRestaurant}/${id}`, { method: 'DELETE' });
-                loadMenuAdmin();
-            }
-        }
-
+        // ==========================================
+        // 9. QR CODE MODAL & ZIP EXPORT
+        // ==========================================
         async function openPrintQRCodesModal() {
             if (!currentAdminRestaurant) return;
             document.getElementById('qrModalTitle').innerText = `🖨️ Table QR Codes (${currentAdminRestaurant})`;
@@ -367,12 +394,12 @@
                 const fullUrl = window.location.origin + l.encodedUrl;
                 const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(fullUrl)}`;
                 return `
-                    <div class="border border-gray-200 p-4 rounded-xl shadow-sm bg-gray-50 flex flex-col items-center qr-card" data-table="${l.tableNumber}">
+                    <a href="${l.encodedUrl}" target="_blank" title="Click to open Table #${l.tableNumber} view" class="border border-gray-200 p-4 rounded-xl shadow-sm bg-gray-50 hover:bg-indigo-50/50 hover:border-indigo-300 transition flex flex-col items-center cursor-pointer qr-card" data-table="${l.tableNumber}">
                         <h3 class="font-bold text-base text-gray-800 mb-1">${l.restaurant}</h3>
-                        <span class="text-sm font-semibold text-indigo-600 mb-3">Table #${l.tableNumber}</span>
+                        <span class="text-sm font-semibold text-indigo-600 mb-3">Table #${l.tableNumber} (Click to View 🔗)</span>
                         <img src="${qrApi}" crossorigin="anonymous" alt="QR Table ${l.tableNumber}" class="w-32 h-32 mb-3 border p-1 bg-white rounded qr-img">
                         <span class="text-[10px] text-gray-400 break-all font-mono">${l.encodedUrl}</span>
-                    </div>
+                    </a>
                 `;
             }).join('');
 
@@ -394,7 +421,6 @@
                 const imgEl = card.querySelector('.qr-img');
 
                 try {
-                    // Fetch QR image as blob
                     const response = await fetch(imgEl.src);
                     const blob = await response.blob();
                     folder.file(`Table_${tableNum}.png`, blob);
@@ -403,7 +429,6 @@
                 }
             }
 
-            // Generate ZIP file and trigger download
             const content = await zip.generateAsync({ type: 'blob' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(content);

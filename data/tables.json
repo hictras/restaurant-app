@@ -77,7 +77,7 @@
     },
     "KunLebnene": {
         "1": {
-            "isOpen": true,
+            "isOpen": false,
             "status": "Valid",
             "canOrder": false
         },
@@ -111,7 +111,7 @@
     },
     "patchi": {
         "1": {
-            "isOpen": false,
+            "isOpen": true,
             "canOrder": false,
             "status": "Valid"
         },
@@ -176,6 +176,38 @@
     "Zaytouna": {
         "1": {
             "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "2": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "3": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "4": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "5": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        },
+        "6": {
+            "isOpen": false,
+            "canOrder": false,
+            "status": "Valid"
+        }
+    },
+    "lakkis": {
+        "1": {
+            "isOpen": true,
             "canOrder": false,
             "status": "Valid"
         },

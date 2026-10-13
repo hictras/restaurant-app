@@ -350,5 +350,37 @@
         "billStatus": "Paid",
         "date": "2026-10-13",
         "timestamp": "10:02:02 AM"
+    },
+    {
+        "orderId": "fabffbc6-2833-4225-92bd-4b6bae0d3465",
+        "tableNumber": "1",
+        "restaurant": "patchi",
+        "items": [
+            {
+                "id": "6abca7c9ca71c4aa68823c7f",
+                "name": "بان أو شوكولا",
+                "price": 4.5,
+                "qty": 1,
+                "checks": [
+                    false,
+                    true
+                ]
+            },
+            {
+                "id": "6abca7e294987f1af4a814ea",
+                "name": "كرواسون جبنة",
+                "price": 4.5,
+                "qty": 1,
+                "checks": [
+                    false,
+                    true
+                ]
+            }
+        ],
+        "total": 9,
+        "kitchenStatus": "Sent to Table",
+        "billStatus": "Paid",
+        "date": "2026-10-13",
+        "timestamp": "10:43:45 AM"
     }
 ]
