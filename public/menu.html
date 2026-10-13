@@ -182,10 +182,24 @@
             document.getElementById('brandTitle').innerText = currentRestaurant.toUpperCase();
             document.getElementById('tableBtnDisplay').innerText = `Table #${currentTable}`;
             document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
-            
+
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
             await loadMenuFromServer(currentRestaurant);
         };
+
+        // Listen for real-time cart synchronization from other devices at the same table
+        socket.on('cart_synced', (data) => {
+            if (isExpired) return;
+            cart = data.cart || {};
+            updateCartUI();
+            renderMenu();
+        });
+
+        function broadcastCart() {
+            if (currentRestaurant && currentTable) {
+                socket.emit('update_cart', { restaurant: currentRestaurant, tableNumber: currentTable, cart });
+            }
+        }
 
         function showScanErrorNotice() {
             document.getElementById('sessionTimerBanner').style.display = 'none';
@@ -206,7 +220,7 @@
         function startSessionCountdown() {
             if (!currentTable || !currentRestaurant) return;
             const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
-            
+
             setInterval(() => {
                 const sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
                 if (!sessionData.startTime) {
@@ -227,7 +241,7 @@
                 } else {
                     const minutes = Math.floor(remaining / (1000 * 60));
                     const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-                    document.getElementById('countdownDisplay').innerText = 
+                    document.getElementById('countdownDisplay').innerText =
                         `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                 }
             }, 1000);
@@ -309,13 +323,13 @@
             const data = latestServerState;
             const restoTables = (data.tables && data.tables[currentRestaurant]) || {};
             const restoTable = restoTables[currentTable] || { isOpen: false, canOrder: false, status: 'Valid' };
-            
+
             const wasTableOpen = tableIsOpen;
             const wasCanOrder = canOrder;
 
             tableIsOpen = !!restoTable.isOpen;
             canOrder = !!restoTable.canOrder;
-            
+
             if (!wasTableOpen && tableIsOpen) {
                 activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                 showModal('Table Menu Activated!', 'The manager has activated your table menu. You can browse and add items!', '🎉');
@@ -326,7 +340,7 @@
                 isWaitingForOrderPermission = false;
                 showModal('Order Approved! 🚀', 'The manager has unlocked your order button. You can now send your order!', '🚀');
             }
-            
+
             const restoRequests = (data.tableRequests && data.tableRequests[currentRestaurant]) || {};
             if (restoRequests[currentTable]) {
                 isWaitingForOrderPermission = true;
@@ -378,7 +392,7 @@
             if (tableOrders.length > 0) {
                 countBadge.innerText = tableOrders.length;
                 countBadge.classList.remove('hidden');
-                
+
                 document.getElementById('fullStatusTrackerContainer').innerHTML = tableOrders.map((ord, idx) => `
                     <div class="bg-gray-50 border p-4 rounded-xl space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
@@ -393,7 +407,7 @@
                                 const statusBg = ord.kitchenStatus === 'Sent to Table' || check2 ? 'bg-emerald-50 text-emerald-600' : check1 ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500';
                                 return `
                                 <li class="flex justify-between items-center bg-white p-2 rounded border text-gray-700">
-                                    <div><span class="font-bold">${i.qty}x</span> ${i.name}</div>
+                                    <div><span class="font-bold">${i.qty}x</span>${i.name}</div>
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <span class="${statusBg} px-2 py-0.5 rounded">${statusLabel}</span>
                                     </div>
@@ -445,11 +459,24 @@
             document.getElementById('chevronIcon').style.transform = isCartOpen ? 'rotate(180deg)' : 'rotate(0deg)';
         }
 
-        function addToCart(id) { if (!isExpired) { cart[id] = (cart[id] || 0) + 1; updateCartUI(); renderMenu(); } }
+        function addToCart(id) {
+            if (!isExpired) {
+                cart[id] = (cart[id] || 0) + 1;
+                updateCartUI();
+                renderMenu();
+                broadcastCart();
+            }
+        }
+
         function changeQty(id, delta) {
             if (isExpired) return;
-            if (cart[id]) { cart[id] += delta; if (cart[id] <= 0) delete cart[id]; }
-            updateCartUI(); renderMenu();
+            if (cart[id]) {
+                cart[id] += delta;
+                if (cart[id] <= 0) delete cart[id];
+            }
+            updateCartUI();
+            renderMenu();
+            broadcastCart();
         }
 
         function updateCartUI() {
@@ -517,7 +544,7 @@
                         const itemDesc = currentLang === 'ar' ? (item.descAr || item.descEn || '') : (item.descEn || '');
                         const badge = cart[item.id] > 0 ? `<span class="qty-badge-red">x${cart[item.id]}</span>` : '';
                         const priceVal = (item.price || 0).toFixed(2);
-                        
+
                         return `
                         <div class="card">
                             <div class="card-info">
@@ -555,17 +582,18 @@
                 orderItems.push({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
             });
 
-            socket.emit('place_order', { 
-                tableNumber: currentTable, 
-                restaurant: currentRestaurant, 
-                items: orderItems, 
-                total, 
-                token: currentToken 
+            socket.emit('place_order', {
+                tableNumber: currentTable,
+                restaurant: currentRestaurant,
+                items: orderItems,
+                total,
+                token: currentToken
             }, (res) => {
                 if (res.success) {
                     cart = {}; isCartOpen = false; isWaitingForOrderPermission = false;
                     document.getElementById('cartDetails').style.display = 'none';
                     document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
+                    broadcastCart();
                     showModal('Success!', 'Order sent successfully to the kitchen!', '🚀');
                     updateCartUI(); renderMenu();
                     switchMainTab('status');

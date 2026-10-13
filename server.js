@@ -161,8 +161,18 @@ io.on('connection', (socket) => {
         tableSockets[sessionKey].add(socket.id);
         socket.tableSessionKey = sessionKey;
 
+        // Join socket room for table-specific broadcasting
+        socket.join(`table_${resto}_${tKey}`);
+
         io.emit('state_update', getAppState());
         if (typeof callback === 'function') callback({ success: true });
+    });
+
+    // Real-time cart synchronization across multiple devices on the same table
+    socket.on('update_cart', ({ restaurant, tableNumber, cart }) => {
+        const resto = restaurant || 'Default';
+        const tKey = String(tableNumber);
+        socket.to(`table_${resto}_${tKey}`).emit('cart_synced', { cart });
     });
 
     socket.on('disconnect', () => {
