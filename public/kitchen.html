@@ -14,10 +14,8 @@
             <h1 class="text-2xl font-bold text-amber-400 flex items-center gap-2">🍳 Kitchen Display <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
         </div>
 
-        <!-- Dynamic Restaurant Navigation Buttons (Shown only if restaurant has active orders) -->
-        <div id="restaurantNavButtons" class="flex flex-wrap items-center gap-2">
-            <!-- Dynamically populated -->
-        </div>
+        <!-- Dynamic Restaurant Navigation Buttons -->
+        <div id="restaurantNavButtons" class="flex flex-wrap items-center gap-2"></div>
 
         <div class="flex items-center gap-3">
             <a href="admin.html" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition">← Admin Panel</a>
@@ -50,12 +48,13 @@
 
         socket.on('state_update', (data) => {
             latestState = data;
-            const orders = data.orders || [];
+            // Filter out orders that are already sent to table / delivered from kitchen view
+            const activeKitchenOrders = (data.orders || []).filter(o => o.kitchenStatus !== 'Sent to Table');
 
-            if (orders.length > previousOrderCount && previousOrderCount !== 0) {
+            if (activeKitchenOrders.length > previousOrderCount && previousOrderCount !== 0) {
                 alertSound.play().catch(e => console.log('Audio blocked:', e));
             }
-            previousOrderCount = orders.length;
+            previousOrderCount = activeKitchenOrders.length;
             renderKitchen();
         });
 
@@ -63,26 +62,27 @@
         // 2. RENDER KITCHEN DISPLAY & RESTAURANT NAV BUTTONS
         // ==========================================
         function renderKitchen() {
-            const orders = latestState.orders || [];
+            const allOrders = latestState.orders || [];
 
-            // Find all unique restaurants that currently have active orders
-            const restaurantsWithOrders = [...new Set(orders.map(o => o.restaurant || 'Default'))];
+            // Exclude 'Sent to Table' orders from the active kitchen view entirely
+            const activeOrders = allOrders.filter(o => o.kitchenStatus !== 'Sent to Table');
 
-            // If selected restaurant has no active orders and others exist, switch to the first available one
+            const restaurantsWithOrders = [...new Set(activeOrders.map(o => o.restaurant || 'Default'))];
+
             if (!restaurantsWithOrders.includes(selectedKitchenRestaurant) && restaurantsWithOrders.length > 0) {
                 selectedKitchenRestaurant = restaurantsWithOrders[0];
             } else if (restaurantsWithOrders.length === 0) {
                 selectedKitchenRestaurant = '';
             }
 
-            // Render Restaurant Navigation Buttons in the Header
+            // Render Restaurant Navigation Buttons
             const navContainer = document.getElementById('restaurantNavButtons');
             if (restaurantsWithOrders.length === 0) {
                 navContainer.innerHTML = `<span class="text-xs text-gray-400 italic">No restaurants with active orders</span>`;
             } else {
                 navContainer.innerHTML = restaurantsWithOrders.map(resto => {
                     const isActive = resto === selectedKitchenRestaurant;
-                    const restoOrderCount = orders.filter(o => (o.restaurant || 'Default') === resto).length;
+                    const restoOrderCount = activeOrders.filter(o => (o.restaurant || 'Default') === resto).length;
                     return `
                         <button onclick="selectKitchenRestaurant('${resto}')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${isActive ? 'bg-amber-500 text-white shadow-md' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}">
                             <span>🍽️ ${resto}</span>
@@ -91,8 +91,7 @@
                 }).join('');
             }
 
-            // Filter orders for the currently selected kitchen restaurant
-            const filteredOrders = orders.filter(o => (o.restaurant || 'Default') === selectedKitchenRestaurant);
+            const filteredOrders = activeOrders.filter(o => (o.restaurant || 'Default') === selectedKitchenRestaurant);
             document.getElementById('activeRestoTitle').innerText = selectedKitchenRestaurant ? `Orders for: ${selectedKitchenRestaurant}` : `Kitchen Display`;
             document.getElementById('orderCountBadge').innerText = `${filteredOrders.length} Active Orders`;
 
@@ -102,12 +101,16 @@
                 return;
             }
 
-            grid.innerHTML = filteredOrders.map((ord, idx) => `
-                <div class="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
+            grid.innerHTML = filteredOrders.map((ord, idx) => {
+                const isReady = ord.kitchenStatus === 'Ready';
+                const isCooking = ord.kitchenStatus === 'Cooking';
+
+                return `
+                <div class="bg-gray-800 border ${isReady ? 'border-emerald-500 shadow-emerald-500/10' : 'border-gray-700'} rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
                     <div>
                         <div class="flex justify-between items-center border-b border-gray-700 pb-3 mb-3">
                             <span class="font-bold text-base text-amber-300">Table #${ord.tableNumber}</span>
-                            <span class="text-xs text-gray-400 font-mono">${ord.timestamp || ''}</span>
+                            <span class="text-xs px-2.5 py-1 rounded-full font-bold ${isReady ? 'bg-emerald-500/20 text-emerald-300' : isCooking ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'}">${ord.kitchenStatus}</span>
                         </div>
                         <ul class="space-y-3">
                             ${(ord.items || []).map((i, itemIdx) => {
@@ -132,7 +135,6 @@
 
                     <div class="space-y-2 pt-3 border-t border-gray-700">
                         <div class="flex justify-between items-center text-xs font-bold text-gray-400">
-                            <span>Status: <span class="text-amber-300">${ord.kitchenStatus}</span></span>
                             <span>Total: <span class="text-white">$${(ord.total || 0).toFixed(2)}</span></span>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
@@ -144,7 +146,8 @@
                             </button>
                         </div>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
         function selectKitchenRestaurant(restoName) {
