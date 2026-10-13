@@ -133,6 +133,9 @@ function encodeTableParam(text) {
     return Buffer.from(String(text)).toString('base64').replace(/=/g, '').split('').reverse().join('');
 }
 
+// Track socket connection maps for instant disconnect cleanup
+const socketSessions = {};
+
 io.on('connection', (socket) => {
     socket.emit('state_update', getAppState());
 
@@ -148,8 +151,20 @@ io.on('connection', (socket) => {
             DO UPDATE SET token = excluded.token, start_time = excluded.start_time
         `).run(resto, tKey, token, startTime);
 
+        // Map socket ID to session for instant disconnect removal
+        socketSessions[socket.id] = { restaurant: resto, tableNumber: tKey };
+
         io.emit('state_update', getAppState());
         if (typeof callback === 'function') callback({ success: true });
+    });
+
+    socket.on('disconnect', () => {
+        const session = socketSessions[socket.id];
+        if (session) {
+            db.prepare('DELETE FROM sessions WHERE restaurant = ? AND table_number = ?').run(session.restaurant, session.tableNumber);
+            delete socketSessions[socket.id];
+            io.emit('state_update', getAppState());
+        }
     });
 
     socket.on('toggle_table', ({ restaurant, tableNum }) => {
