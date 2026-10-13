@@ -186,7 +186,7 @@ app.get('/api/verify-token', (req, res) => {
 
 // API endpoint to create/retrieve session token from customer.html
 app.post('/api/create-session', (req, res) => {
-    const { restaurant, tableNumber } = req.body;
+    const { restaurant, tableNumber, lifetime } = req.body;
     if (!restaurant || !tableNumber) {
         return res.status(400).json({ success: false, message: 'Restaurant and table number required' });
     }
@@ -194,19 +194,22 @@ app.post('/api/create-session', (req, res) => {
     try {
         const resto = path.basename(restaurant);
         const tKey = String(tableNumber);
+        const lifetimeMinutes = parseInt(lifetime) || 15;
 
         let session = db.prepare('SELECT * FROM sessions WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
         let token;
         const now = Date.now();
+        const lifetimeMs = lifetimeMinutes * 60 * 1000;
 
-        if (isSessionValid(session)) {
+        // If session exists, matches the requested lifetime, and is still valid, reuse it. Otherwise, force a new token & reset timer!
+        if (session && session.lifetime_minutes === lifetimeMinutes && (now - session.start_time <= lifetimeMs)) {
             token = session.token;
         } else {
             token = 'tok_' + uuidv4().replace(/-/g, '') + now.toString(36);
             db.prepare(`
                 INSERT OR REPLACE INTO sessions (token, restaurant, table_number, start_time, lifetime_minutes)
-                VALUES (?, ?, ?, ?, 15)
-            `).run(token, resto, tKey, now);
+                VALUES (?, ?, ?, ?, ?)
+            `).run(token, resto, tKey, now, lifetimeMinutes);
         }
 
         res.json({ success: true, token });
