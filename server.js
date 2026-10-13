@@ -103,7 +103,8 @@ db.exec(`
         token TEXT PRIMARY KEY,
         restaurant TEXT,
         table_number TEXT,
-        start_time INTEGER
+        start_time INTEGER,
+        lifetime_minutes INTEGER DEFAULT 15
     );
 `);
 
@@ -125,10 +126,11 @@ function getAppState() {
     });
 
     const activeSessions = {};
-    const sessionRows = db.prepare('SELECT restaurant, table_number, start_time FROM sessions').all();
+    const sessionRows = db.prepare('SELECT restaurant, table_number, start_time, lifetime_minutes FROM sessions').all();
     const now = Date.now();
     sessionRows.forEach(s => {
-        if (now - s.start_time <= 15 * 60 * 1000) {
+        const lifetimeMs = (s.lifetime_minutes || 15) * 60 * 1000;
+        if (now - s.start_time <= lifetimeMs) {
             if (!activeSessions[s.restaurant]) activeSessions[s.restaurant] = {};
             const sessionKey = `${s.restaurant}_${s.table_number}`;
             const activeCount = (tableSockets[sessionKey] && tableSockets[sessionKey].size > 0)
@@ -162,17 +164,24 @@ function getAppState() {
     return { tables, tableRequests, orders, activeSessions };
 }
 
+// Helper to check if a session is valid based on its configured lifetime
+function isSessionValid(session) {
+    if (!session) return false;
+    const lifetimeMs = (session.lifetime_minutes || 15) * 60 * 1000;
+    return (Date.now() - session.start_time <= lifetimeMs);
+}
+
 // API endpoint to validate token and return table & restaurant info
 app.get('/api/verify-token', (req, res) => {
     const { token } = req.query;
     if (!token) return res.status(400).json({ success: false, message: 'Missing token' });
 
     const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
-    if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) {
+    if (!isSessionValid(session)) {
         return res.status(401).json({ success: false, message: 'Invalid or expired token' });
     }
 
-    res.json({ success: true, restaurant: session.restaurant, tableNumber: session.table_number });
+    res.json({ success: true, restaurant: session.restaurant, tableNumber: session.table_number, lifetimeMinutes: session.lifetime_minutes || 15 });
 });
 
 // API endpoint to create/retrieve session token from customer.html
@@ -186,17 +195,17 @@ app.post('/api/create-session', (req, res) => {
         const resto = path.basename(restaurant);
         const tKey = String(tableNumber);
 
-        let session = db.prepare('SELECT token, start_time FROM sessions WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
+        let session = db.prepare('SELECT * FROM sessions WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
         let token;
         const now = Date.now();
 
-        if (session && (now - session.start_time <= 15 * 60 * 1000)) {
+        if (isSessionValid(session)) {
             token = session.token;
         } else {
             token = 'tok_' + uuidv4().replace(/-/g, '') + now.toString(36);
             db.prepare(`
-                INSERT OR REPLACE INTO sessions (token, restaurant, table_number, start_time)
-                VALUES (?, ?, ?, ?)
+                INSERT OR REPLACE INTO sessions (token, restaurant, table_number, start_time, lifetime_minutes)
+                VALUES (?, ?, ?, ?, 15)
             `).run(token, resto, tKey, now);
         }
 
@@ -211,7 +220,7 @@ io.on('connection', (socket) => {
 
     socket.on('register_session', ({ token }, callback) => {
         const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
-        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) {
+        if (!isSessionValid(session)) {
             if (typeof callback === 'function') callback({ success: false, message: 'Invalid token' });
             return;
         }
@@ -233,7 +242,7 @@ io.on('connection', (socket) => {
 
     socket.on('update_cart', ({ token, cart }) => {
         const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
-        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) return;
+        if (!isSessionValid(session)) return;
         socket.to(`table_${session.restaurant}_${session.table_number}`).emit('cart_synced', { cart });
     });
 
@@ -246,7 +255,7 @@ io.on('connection', (socket) => {
             if (tableSockets[sessionKey].size === 0) {
                 delete tableSockets[sessionKey];
                 const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
-                if (session && (Date.now() - session.start_time > 15 * 60 * 1000)) {
+                if (session && !isSessionValid(session)) {
                     db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
                 }
             }
@@ -288,7 +297,7 @@ io.on('connection', (socket) => {
 
     socket.on('table_request', ({ token }) => {
         const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
-        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) return;
+        if (!isSessionValid(session)) return;
 
         db.prepare(`
             INSERT INTO table_requests (restaurant, table_number, requested) VALUES (?, ?, 1)
@@ -300,7 +309,7 @@ io.on('connection', (socket) => {
 
     socket.on('place_order', ({ items, total, token }, callback) => {
         const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
-        if (!session || (Date.now() - session.start_time > 15 * 60 * 1000)) {
+        if (!isSessionValid(session)) {
             return callback({ success: false, message: 'Session expired or unauthorized.' });
         }
 
@@ -417,6 +426,7 @@ app.get('/api/restaurants', (req, res) => {
 app.get('/api/qr-links', (req, res) => {
     try {
         const targetResto = req.query.restaurant;
+        const lifetimeMinutes = parseInt(req.query.lifetime) || 15;
         const files = fs.readdirSync(restaurantsDir);
         let restaurants = files.filter(f => f.endsWith('.json')).map(f => path.basename(f, '.json'));
         if (targetResto) {
@@ -427,8 +437,24 @@ app.get('/api/qr-links', (req, res) => {
         restaurants.forEach(resto => {
             const restoTables = db.prepare('SELECT table_number FROM tables_state WHERE restaurant = ?').all(resto);
             restoTables.forEach(t => {
-                const encodedTbl = Buffer.from(String(t.table_number)).toString('base64').replace(/=/g, '').split('').reverse().join('');
-                const encodedResto = Buffer.from(String(resto)).toString('base64').replace(/=/g, '').split('').reverse().join('');
+                const tableNumStr = String(t.table_number);
+
+                let session = db.prepare('SELECT * FROM sessions WHERE restaurant = ? AND table_number = ?').get(resto, tableNumStr);
+                let token;
+                const now = Date.now();
+
+                if (isSessionValid(session)) {
+                    token = session.token;
+                } else {
+                    token = 'tok_' + uuidv4().replace(/-/g, '') + now.toString(36);
+                    db.prepare(`
+                        INSERT OR REPLACE INTO sessions (token, restaurant, table_number, start_time, lifetime_minutes)
+                        VALUES (?, ?, ?, ?, ?)
+                    `).run(token, resto, tableNumStr, now, lifetimeMinutes);
+                }
+
+                const encodedTbl = Buffer.from(tableNumStr).toString('base64').replace(/=/g, '').split('').reverse().join('');
+                const encodedResto = Buffer.from(resto).toString('base64').replace(/=/g, '').split('').reverse().join('');
 
                 allLinks.push({
                     restaurant: resto,

@@ -20,10 +20,20 @@
     </div>
 
     <div id="qrPrintModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-gray-800">
-            <div class="flex justify-between items-center mb-4 border-b pb-3">
-                <h2 id="qrModalTitle" class="text-xl font-bold">🖨️ Table QR Codes (Active Restaurant)</h2>
-                <div class="flex gap-2">
+        <div class="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-gray-800">
+            <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-3 gap-3">
+                <h2 id="qrModalTitle" class="text-xl font-bold">🖨️ Table QR Codes</h2>
+                <div class="flex items-center gap-3">
+                    <label class="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                        Token Lifetime:
+                        <select id="tokenLifetimeSelect" onchange="openPrintQRCodesModal()" class="bg-gray-100 border border-gray-300 rounded-lg p-1.5 text-xs font-bold text-gray-800 focus:outline-none">
+                            <option value="1">1 Minute</option>
+                            <option value="2">2 Minutes</option>
+                            <option value="5">5 Minutes</option>
+                            <option value="10">10 Minutes</option>
+                            <option value="15" selected>15 Minutes</option>
+                        </select>
+                    </label>
                     <button onclick="downloadAllQRZip()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition">Download ZIP 📦</button>
                     <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">Print Sheet 🖨️</button>
                     <button onclick="document.getElementById('qrPrintModal').classList.add('hidden')" class="bg-gray-200 px-3 py-2 rounded-xl text-xs font-bold">Close ✕</button>
@@ -376,9 +386,10 @@
 
         async function openPrintQRCodesModal() {
             if (!currentAdminRestaurant) return;
-            document.getElementById('qrModalTitle').innerText = `🖨️ Table QR Codes (${currentAdminRestaurant})`;
+            const lifetime = document.getElementById('tokenLifetimeSelect').value;
+            document.getElementById('qrModalTitle').innerText = `🖨️ Table QR Codes (${currentAdminRestaurant}) - ${lifetime} min`;
 
-            const res = await fetch(`/api/qr-links?restaurant=${encodeURIComponent(currentAdminRestaurant)}`);
+            const res = await fetch(`/api/qr-links?restaurant=${encodeURIComponent(currentAdminRestaurant)}&lifetime=${lifetime}`);
             const links = await res.json();
             const container = document.getElementById('qrGridContainer');
 
