@@ -83,6 +83,9 @@ db.exec(`
 const restaurantsDir = path.join(__dirname, 'restaurants');
 if (!fs.existsSync(restaurantsDir)) fs.mkdirSync(restaurantsDir);
 
+// Track multiple sockets per table session: { "Restaurant_TableNum": Set([socketId1, socketId2]) }
+const tableSockets = {};
+
 function getAppState() {
     const tables = {};
     const rows = db.prepare('SELECT * FROM tables_state').all();
@@ -95,14 +98,19 @@ function getAppState() {
         };
     });
 
-    // Get active sessions within 15-minute window
+    // Get active sessions and count open menu connections/tabs
     const activeSessions = {};
     const sessionRows = db.prepare('SELECT restaurant, table_number, start_time FROM sessions').all();
     const now = Date.now();
     sessionRows.forEach(s => {
         if (now - s.start_time <= 15 * 60 * 1000) {
             if (!activeSessions[s.restaurant]) activeSessions[s.restaurant] = {};
-            activeSessions[s.restaurant][s.table_number] = true;
+            const sessionKey = `${s.restaurant}_${s.table_number}`;
+            const activeCount = (tableSockets[sessionKey] && tableSockets[sessionKey].size > 0)
+                ? tableSockets[sessionKey].size
+                : 1;
+
+            activeSessions[s.restaurant][s.table_number] = activeCount;
         }
     });
 
@@ -133,9 +141,6 @@ function encodeTableParam(text) {
     return Buffer.from(String(text)).toString('base64').replace(/=/g, '').split('').reverse().join('');
 }
 
-// Track multiple sockets per table session: { "Restaurant_TableNum": Set([socketId1, socketId2]) }
-const tableSockets = {};
-
 io.on('connection', (socket) => {
     socket.emit('state_update', getAppState());
 
@@ -152,7 +157,6 @@ io.on('connection', (socket) => {
             DO UPDATE SET token = excluded.token, start_time = excluded.start_time
         `).run(resto, tKey, token, startTime);
 
-        // Track socket connection for this table session
         if (!tableSockets[sessionKey]) tableSockets[sessionKey] = new Set();
         tableSockets[sessionKey].add(socket.id);
         socket.tableSessionKey = sessionKey;
@@ -166,7 +170,6 @@ io.on('connection', (socket) => {
         if (sessionKey && tableSockets[sessionKey]) {
             tableSockets[sessionKey].delete(socket.id);
 
-            // Only remove session from DB if NO OTHER tabs/devices are connected to this table
             if (tableSockets[sessionKey].size === 0) {
                 delete tableSockets[sessionKey];
                 const lastUnderscore = sessionKey.lastIndexOf('_');

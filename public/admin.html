@@ -101,9 +101,6 @@
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         let previousPendingCount = 0;
 
-        // ==========================================
-        // 1. INITIALIZATION & RESTAURANT LOADER
-        // ==========================================
         window.onload = async () => {
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
             await loadAdminRestaurantsList();
@@ -137,9 +134,6 @@
             renderAdmin();
         }
 
-        // ==========================================
-        // 2. NOTIFICATIONS & MODALS
-        // ==========================================
         function requestNotificationPermission() {
             if ('Notification' in window) {
                 Notification.requestPermission().then(p => showModal('Notifications', p === 'granted' ? 'Push enabled!' : 'Denied.', p === 'granted' ? '🎉' : '⚠️'));
@@ -154,9 +148,6 @@
         }
         function closeCustomModal() { document.getElementById('customModal').classList.add('hidden'); }
 
-        // ==========================================
-        // 3. SOCKET.IO CONNECTION & STATE SYNC
-        // ==========================================
         socket.on('connect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block"; });
         socket.on('disconnect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-red-500 inline-block"; });
 
@@ -174,9 +165,6 @@
 
         socket.on('menu_updated', (data) => { if (data && data.restaurant === currentAdminRestaurant) loadMenuAdmin(); });
 
-        // ==========================================
-        // 4. TAB NAVIGATION CONTROLLER
-        // ==========================================
         function switchTab(tabName) {
             currentTab = tabName;
             document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
@@ -188,9 +176,6 @@
             if (tabName === 'revenue') loadRevenueAdmin();
         }
 
-        // ==========================================
-        // 5. TABLE CREATION & DELETION
-        // ==========================================
         async function addNewTable(e) {
             e.preventDefault();
             const tNum = document.getElementById('newTableNum').value.trim();
@@ -226,9 +211,6 @@
             }
         }
 
-        // ==========================================
-        // 6. RENDER ADMIN BOARD & BILLS
-        // ==========================================
         function renderAdmin() {
             const { tables, tableRequests, orders, activeSessions } = globalData;
             const restoTables = (tables && tables[currentAdminRestaurant]) || {};
@@ -254,7 +236,8 @@
             } else {
                 gridContainer.innerHTML = tableKeys.map(k => {
                     const t = restoTables[k], isWaiting = restoRequests[k], isOccupied = activeTablesForResto.has(String(k));
-                    const isMenuOpen = !!restoActiveSessions[k];
+                    const openCount = restoActiveSessions[k] || 0;
+                    const isMenuOpen = openCount > 0;
 
                     return `
                         <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'} relative">
@@ -262,8 +245,9 @@
                             <div>
                                 <div class="flex justify-between items-center mb-1.5 pr-4">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="w-2.5 h-2.5 rounded-full ${isMenuOpen ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]' : 'bg-gray-600'}" title="${isMenuOpen ? 'Menu page is open on table' : 'Menu closed'}"></span>
+                                        <span class="w-2.5 h-2.5 rounded-full ${isMenuOpen ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]' : 'bg-gray-600'}" title="${isMenuOpen ? `${openCount} menu page(s) open` : 'Menu closed'}"></span>
                                         <span class="font-bold text-sm text-amber-300">Table #${k}</span>
+                                        ${isMenuOpen ? `<span class="bg-emerald-900/80 text-emerald-300 text-[10px] px-1.5 py-0.2 rounded-full font-bold ml-1">${openCount} active</span>` : ''}
                                     </div>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${isOccupied ? 'bg-red-500 text-white' : 'bg-gray-800 border border-gray-600'}">${isOccupied ? 'Occupied' : t.status}</span>
                                 </div>
@@ -294,9 +278,6 @@
                 </div>`).join('');
         }
 
-        // ==========================================
-        // 7. MENU MANAGEMENT & EDITOR
-        // ==========================================
         async function loadMenuAdmin() {
             if (!currentAdminRestaurant) return;
             const res = await fetch(`/api/menu/${currentAdminRestaurant}`);
@@ -364,9 +345,6 @@
             }
         }
 
-        // ==========================================
-        // 8. REVENUE REPORTS LOADER
-        // ==========================================
         async function loadRevenueAdmin() {
             const res = await fetch('/api/revenue');
             const revenueData = await res.json();
@@ -394,9 +372,6 @@
             }
         }
 
-        // ==========================================
-        // 9. QR CODE MODAL, CLICKABLE CARDS & ZIP EXPORT
-        // ==========================================
         async function openPrintQRCodesModal() {
             if (!currentAdminRestaurant) return;
             document.getElementById('qrModalTitle').innerText = `🖨️ Table QR Codes (${currentAdminRestaurant})`;
