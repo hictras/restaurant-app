@@ -1,0 +1,1372 @@
+[
+    {
+        "categoryEn": "New Items",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000577",
+                "nameEn": "Pinky Promise Smoothie",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "A refreshing smoothie of strawberries, mixed berries, banana, creamy yogurt and milk.\nAll sales this October will be donated to the Barbara Nassar Association for Cancer Patient Support.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000505",
+                "nameEn": "Avocado Arisheh Bowl",
+                "nameAr": "",
+                "price": 13.0,
+                "descEn": "Fresh avocado blended into a rich and creamy bowl topped with granola, our farm-fresh arisheh and strawberries.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000578",
+                "nameEn": "Meat and Kafta Rolls",
+                "nameAr": "",
+                "price": 21.0,
+                "descEn": "Grilled meat and kafta rolls served with grilled tomato, onion and pepper.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000579",
+                "nameEn": "Meat and Lamb Fat Rolls",
+                "nameAr": "",
+                "price": 21.0,
+                "descEn": "Grilled meat and lamb fat rolls, served with grilled tomato, onions and pepper.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000057a",
+                "nameEn": "Meat Ras Asfour with Pesto",
+                "nameAr": "",
+                "price": 16.0,
+                "descEn": "Sautéed veal cubes tossed in a fragrant pesto sauce.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000057b",
+                "nameEn": "Veal Meat with Rice",
+                "nameAr": "",
+                "price": 15.0,
+                "descEn": "Slow-cooked veal meat,rice, cashews and demi-glace sauce",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Kids Meal",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000507",
+                "nameEn": "Crispy Chicken Tenders",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Golden crispy chicken tenders (3 pcs) served with fries, fresh coleslaw, and cocktail sauce- fun and tasty meal kids will love.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000508",
+                "nameEn": "Beef Burger",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Juicy beef burger topped with fresh tomato and lettuce, served with fries, and cocktail sauce for the perfect kids’ combo.",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Breakfast",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000097",
+                "nameEn": "Balila",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Chickpea, lemon, and garlic served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000412",
+                "nameEn": "Breakfast Sharing Tray",
+                "nameAr": "",
+                "price": 25.0,
+                "descEn": "Eggs Your Style with an assortment of Cow Labneh, Grilled Halloumi, Shanklish Labneh, Foul, Hummus Fatteh, Feta &amp; Fresh Vegetables",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000008f",
+                "nameEn": "Msabaha",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Chickpeas with tahini, lemon, and garlic served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000009c",
+                "nameEn": "Foul",
+                "nameAr": "",
+                "price": 6.0,
+                "descEn": "Fava beans, chickpeas and lemon served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000094",
+                "nameEn": "Fried Eggs with Kawarma",
+                "nameAr": "",
+                "price": 13.0,
+                "descEn": "Organic farm-fresh fried eggs with kawarma, served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000093",
+                "nameEn": "Fried Eggs with Sujuk",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Organic farm-fresh fried eggs with sujuk, served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000008e",
+                "nameEn": "Eggs Your Style",
+                "nameAr": "",
+                "price": 4.5,
+                "descEn": "Organic farm-fresh eggs — scrambled, sunny side up, served with fresh&nbsp;vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000008a",
+                "nameEn": "Cow Labneh Plate",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Creamy cow labneh made with our fresh farm milk.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000091",
+                "nameEn": "Labneh with Kawarma",
+                "nameAr": "",
+                "price": 12.0,
+                "descEn": "Creamy cow or goat labneh topped with our signature Kawarma.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000088",
+                "nameEn": "Cow Labneh Balls",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Farm-fresh cow labneh balls with olives.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000225",
+                "nameEn": "Goat Labneh Balls",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Farm-fresh goat labneh balls with olives.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000087",
+                "nameEn": "Mixed Cheese Platter",
+                "nameAr": "",
+                "price": 12.0,
+                "descEn": "A selection of our farm-fresh cheeses: nabulsi, akkawi, baladiye, halloum, feta, and meshalale, served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000098",
+                "nameEn": "Ambaris Spread Plate",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Our signature Aged fermented goat labneh — a Baalbek tradition.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000009a",
+                "nameEn": "Shanklish Labneh Plate",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Shanklish labneh balls with our signature spices, tomato, onion and parsley.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000009e",
+                "nameEn": "Karishe and Honey",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Our special Karishe served with mini honey jars.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000008b",
+                "nameEn": "Shanklish Cheese Plate",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Shanklish cheese mixed with tomato, onion, parsley and our signature spices.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000009b",
+                "nameEn": "Goat Labneh Plate",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Creamy goat labneh made with our fresh farm milk.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000008c",
+                "nameEn": "Labneh with vegetables",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Creamy cow or goat labneh mixed with vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000003f0",
+                "nameEn": "Choose Your Cheese Plate",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Your choice of our farm-fresh cheese plates: Halloum, Feta, Baladiyeh, Nabulsi, Akkawi, Meshalale, double cream.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000095",
+                "nameEn": "Olives Plate",
+                "nameAr": "",
+                "price": 2.0,
+                "descEn": "",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Authentic Woodfire Tannour Manakish",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "0000000000000000000000d4",
+                "nameEn": "Zaatar",
+                "nameAr": "",
+                "price": 3.0,
+                "descEn": "Traditional za’atar spread with extra virgin olive oil on our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000ec",
+                "nameEn": "Cheese",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Our special cheese mix wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000e2",
+                "nameEn": "Cocktail",
+                "nameAr": "",
+                "price": 4.5,
+                "descEn": "A savory mix of za’atar and cheese wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000227",
+                "nameEn": "Labneh",
+                "nameAr": "",
+                "price": 3.5,
+                "descEn": "Creamy, farm-fresh labneh wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000de",
+                "nameEn": "Keshek",
+                "nameAr": "",
+                "price": 6.0,
+                "descEn": "Our bold, homemade keshek spread wrapped inside our freshly baked tannour for a traditional bite.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000ea",
+                "nameEn": "Muhammara &amp; Cheese",
+                "nameAr": "",
+                "price": 4.5,
+                "descEn": "A rich combination of our muhammara spread and melted cheese wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000d8",
+                "nameEn": "Turkey &amp; Cheese",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Slices of turkey breast and melted cheese wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000dc",
+                "nameEn": "Labneh with Kawarma",
+                "nameAr": "",
+                "price": 6.0,
+                "descEn": "Creamy, farm-fresh labneh paired with our signature kawarma, wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000da",
+                "nameEn": "Spinach",
+                "nameAr": "",
+                "price": 4.0,
+                "descEn": "A zesty mix of spinach, tomato, onion, and sumac filled inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000e6",
+                "nameEn": "Bakleh Tannour",
+                "nameAr": "",
+                "price": 4.5,
+                "descEn": "Purslane mixed with tomato, onion, and sumac wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000e0",
+                "nameEn": "Kafta Tannour",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Juicy, seasoned kafta wrapped inside our freshly baked tannour for a hearty flavor.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000e8",
+                "nameEn": "Kafta &amp; Cheese Tannour",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "A flavorful pairing of kafta and melted cheese wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000ee",
+                "nameEn": "Sujuk &amp; Cheese",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Lebanese sujuk sausage and melted cheese wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000004b7",
+                "nameEn": "Nutella &amp; Cheese Tannour",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Melted Nutella chocolate spread paired with melted cheese, wrapped inside our freshly baked tannour.",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Fatteh",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000089",
+                "nameEn": "Sfiha Fatteh",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Mini Sfiha, chickpea, our farm fresh yogurt, toasted pine nut, fresh pomegranate and crispy Arabic bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000096",
+                "nameEn": "Hummus Fatteh",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Chickpea, our farm fresh yogurt, toasted pine nut, fresh pomegranate and crispy Arabic bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000085",
+                "nameEn": "Eggplant Fatteh",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Fried eggplant marinated in tomato sauce, chickpea, our farm fresh yogurt, toasted pine nut, fresh pomegranate, and crispy Arabic bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000090",
+                "nameEn": "Lsanat Fatteh",
+                "nameAr": "",
+                "price": 13.0,
+                "descEn": "Fried tongue, chickpea, our farm fresh yogurt, toasted pine nut, fresh pomegranate, and crispy Arabic bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000084",
+                "nameEn": "Makadem Fatteh",
+                "nameAr": "",
+                "price": 14.0,
+                "descEn": "Boiled makadem, chickpea, our farm fresh yogurt, toasted pine nut, fresh pomegranate, and crispy Arabic bread.",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Salads",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000119",
+                "nameEn": "Tabbouleh",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Chopped parsley, tomato, onions, burgul, lemon, and extra virgin olive oil dressing.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000116",
+                "nameEn": "Fattoush",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Fresh mixed greens, tomato, cucumber, radish, fresh pomegranate, fried Arabic bread, and a pomegranate molasses dressing.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000118",
+                "nameEn": "Greek Salad",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Feta cheese, tomato, pepper, cucumber, olives, onion and extra virgin olive oil dressing.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000011b",
+                "nameEn": "Rocca &amp; Beetroot Salad",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Rocca, purslane, beetroot, onion, and extra virgin olive oil dressing.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000011c",
+                "nameEn": "Rocca, Thyme &amp; Bakleh",
+                "nameAr": "",
+                "price": 6.0,
+                "descEn": "Rocca, thyme, purslane, tomato, onion, and extra virgin olive oil dressing.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000035f",
+                "nameEn": "Goat Labneh Salad",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Goat labneh balls coated with cranberries, green apples, walnuts, lollo rosso verde with balsamic dressing",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Cold Mezza",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "00000000000000000000004f",
+                "nameEn": "Hindbeh Bil Zeit",
+                "nameAr": "",
+                "price": 6.5,
+                "descEn": "Dandelion greens cooked in olive oil with crispy onions, served with a lemon slice.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000001eb",
+                "nameEn": "Grape Leaves with Oil",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Stuffed grape leaves with rice, tomato, parsley and mint.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f2",
+                "nameEn": "Labneh with Garlic",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Labneh with garlic and dried mint.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f8",
+                "nameEn": "Hummus Har",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Chickpea and chili pepper blend with tahini and lemon.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f3",
+                "nameEn": "Hummus Beiruti",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Chickpea dip with tahini, garlic, parsley and lemon topped with fava bean and tomato.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000fe",
+                "nameEn": "Hummus",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Chickpea dip with tahini and lemon.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f6",
+                "nameEn": "Hummus Lahme",
+                "nameAr": "",
+                "price": 14.0,
+                "descEn": "Chickpea dip with tahini, lemon, meat cubes and toasted pine nuts.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000023e",
+                "nameEn": "Hummus With Awarma",
+                "nameAr": "",
+                "price": 12.0,
+                "descEn": "",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000fa",
+                "nameEn": "Mutabbal",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Flame-grilled eggplant with tahini, lemon and fresh pomegranate.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f9",
+                "nameEn": "Mutabbal Ajami",
+                "nameAr": "",
+                "price": 6.0,
+                "descEn": "Flamed- grilled eggplant with tahini and lemon topped with tomato sauce and toasted almonds.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f4",
+                "nameEn": "Muhammara",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Roasted sweet pepper and walnut dip, topped with shaved walnut and fresh pomegranate.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000fb",
+                "nameEn": "Raheb",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Flame-grilled eggplant with tomato, onion, garlic, green pepper and lemon topped with fresh pomegranate and extra virgin olive oil.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000fc",
+                "nameEn": "Vegetables Plate",
+                "nameAr": "",
+                "price": 4.0,
+                "descEn": "Tomato, cucumber, radish, onion, chili pepper, olive, and mint.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f1",
+                "nameEn": "Goat Yogurt",
+                "nameAr": "",
+                "price": 3.0,
+                "descEn": "",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000f7",
+                "nameEn": "Sheep Yogurt",
+                "nameAr": "",
+                "price": 3.0,
+                "descEn": "",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000fd",
+                "nameEn": "Cow Yogurt",
+                "nameAr": "",
+                "price": 2.5,
+                "descEn": "",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Hot Mezza",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "0000000000000000000003fa",
+                "nameEn": "Mix Pastries",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Pizza, spinach, backleh, keshek",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000001d1",
+                "nameEn": "Pumpkin Kebbe",
+                "nameAr": "",
+                "price": 6.0,
+                "descEn": "Pumpkin kebbe filled with spinach and chickpeas.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000023c",
+                "nameEn": "Mixed Mouajanet",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Assortment of cheese rolls, sambsousik and kebbe.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000104",
+                "nameEn": "Batata Harra",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Spicy potatoes with garlic and coriander.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000108",
+                "nameEn": "French Fries",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Crispy golden fries.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000105",
+                "nameEn": "Grilled Potato",
+                "nameAr": "",
+                "price": 4.5,
+                "descEn": "Grilled potato slices served with garlic cream.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000240",
+                "nameEn": "Grilled Rakakat Cheese",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Grilled cheese-filled pastries",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000106",
+                "nameEn": "Chicken Wings Provencal",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Marinated chicken wings with garlic, parsley, and lemon.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000101",
+                "nameEn": "Makanek",
+                "nameAr": "",
+                "price": 13.0,
+                "descEn": "Fried Lebanese sausage in pomegranate molasses.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000ff",
+                "nameEn": "Sujuk",
+                "nameAr": "",
+                "price": 13.0,
+                "descEn": "Fried Lebanese sausage with tomato, onion and green pepper.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000100",
+                "nameEn": "Meat Ras Asfour",
+                "nameAr": "",
+                "price": 17.0,
+                "descEn": "Sautéed veal cubes with pomegranate molasses.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000010c",
+                "nameEn": "Kabab Karaz",
+                "nameAr": "",
+                "price": 21.0,
+                "descEn": "Kabab balls with cherry jam topped with almonds and fresh pomegranate.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000103",
+                "nameEn": "Cheese Rolls",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Fried cheese-filled pastries.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000010a",
+                "nameEn": "Meat Sambousek",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Meat-filled pastries.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000008d",
+                "nameEn": "Grilled Halloumi Plate",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Perfectly grilled, farm-fresh halloumi cheese.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000109",
+                "nameEn": "Fried Kebbe",
+                "nameAr": "",
+                "price": 9.0,
+                "descEn": "Filled with spiced meat and onion.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000102",
+                "nameEn": "Kebbe Sajiyeh",
+                "nameAr": "",
+                "price": 11.0,
+                "descEn": "Our special grilled kebbe filled with spiced meat and onion.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000107",
+                "nameEn": "Fried Lamb Liver",
+                "nameAr": "",
+                "price": 13.0,
+                "descEn": "Sautéed lamb liver with lemon and pomegranate molasses.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000023d",
+                "nameEn": "Nkhaat Plate",
+                "nameAr": "",
+                "price": 11.0,
+                "descEn": "",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000185",
+                "nameEn": "Sheep Eggs",
+                "nameAr": "",
+                "price": 12.0,
+                "descEn": "Sautéed sheep eggs with lemon and butter.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000003a0",
+                "nameEn": "Oven Baked Fetta",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Fresh Lakkis Farm feta cheese baked in the oven with cherry tomatoes, allowing the flavors to blend into a rich, warm, and savory dish.\nServed with fresh tannour bread on the side.",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Cold Sandwiches",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000132",
+                "nameEn": "Cow Labneh Sandwich",
+                "nameAr": "",
+                "price": 3.0,
+                "descEn": "Labneh, cucumber, olives, and mint served in saj bread with extra virgin olive oil.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000135",
+                "nameEn": "Goat Labneh Sandwich",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Labneh, cucumber, olives, and mint served in saj bread with extra virgin olive oil.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000ed",
+                "nameEn": "Ambaris Sandwich",
+                "nameAr": "",
+                "price": 5.5,
+                "descEn": "Traditional ambaris spread, cucumber, olives, and mint served in saj bread with extra virgin olive oil.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000133",
+                "nameEn": "Karishe and Honey",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Traditional karishe spread with a drizzle of honey served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000003ef",
+                "nameEn": "Make Your Own Cheese Sandwich",
+                "nameAr": "",
+                "price": 4.5,
+                "descEn": "Personalize your sandwich (Halloum, Baladiyeh, Double Cream, Feta, Akkawi, Meshalale)",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000020f",
+                "nameEn": "Malseh Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Creamy raw meat, onions, garlic, and mint served in tannour bread with extra virgin olive oil.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000131",
+                "nameEn": "Raw Kafta Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Finely minced raw meat, black pepper, onions, and mint served in tannour bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000151",
+                "nameEn": "Mujarmashe Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Finely chopped raw meat with black pepper, onions, and mint served in tannour bread.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000db",
+                "nameEn": "Nayyeh Liver Sandwich",
+                "nameAr": "",
+                "price": 8.0,
+                "descEn": "Raw lamb liver and fat, mint, and raw onions served in saj bread.",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Hot Sandwiches",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000161",
+                "nameEn": "Taouk Sandwich",
+                "nameAr": "",
+                "price": 6.5,
+                "descEn": "Grilled marinated chicken skewer, garlic cream, pickled cucumber, and fries served in saj bread (white or red taouk).",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000015b",
+                "nameEn": "Grilled Chicken Sandwich",
+                "nameAr": "",
+                "price": 7.5,
+                "descEn": "Grilled marinated chicken, garlic cream, pickled cucumber, and fries served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000159",
+                "nameEn": "Lamb Meat Sandwich",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Grilled fresh lamb skewers, hummus, tomato, onions, and parsley served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000004e1",
+                "nameEn": "Veal Meat Sandwich",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Grilled fresh veal skewers, hummus, tomato, onions, and parsley served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000203",
+                "nameEn": "Kafta Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Grilled kafta skewers, hummus, tomato, onions, and parsley served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000205",
+                "nameEn": "Kabab Sandwich",
+                "nameAr": "",
+                "price": 6.5,
+                "descEn": "Grilled kabab skewers, hummus, tomato, onions, and parsley served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000015c",
+                "nameEn": "Orfali Kabab Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Grilled kabab skewer, hummus, parsley, grilled eggplant, tomato, and onion served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000015a",
+                "nameEn": "Keshkash Kabab Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Grilled kabab skewer with a spicy tomato and green pepper sauce served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000015d",
+                "nameEn": "Sujuk Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Lebanese spicy sausage skewer, garlic cream, tomato, and pickled cucumber served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000015f",
+                "nameEn": "Makanek Sandwich",
+                "nameAr": "",
+                "price": 7.0,
+                "descEn": "Lebanese sausage skewer, hummus, tomato, pickled cucumber, and pomegranate molasses served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000136",
+                "nameEn": "Fried Lamb Liver Sandwich",
+                "nameAr": "",
+                "price": 8.5,
+                "descEn": "Sautéed fried lamb liver, garlic cream, mint, and tomato served in saj bread.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000023b",
+                "nameEn": "Grilled Halloumi Sandwich",
+                "nameAr": "",
+                "price": 5.0,
+                "descEn": "Grilled halloum, cucumber, olives, and mint served in saj bread.",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Fresh Raw Meat",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "00000000000000000000014e",
+                "nameEn": "Frakeh",
+                "nameAr": "",
+                "price": 13.5,
+                "descEn": "Finely ground raw meat, bulgur, and Lebanese kamouneh served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000158",
+                "nameEn": "Malseh",
+                "nameAr": "",
+                "price": 16.0,
+                "descEn": "Creamy raw meat served with garlic cream and fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000153",
+                "nameEn": "Kebbe",
+                "nameAr": "",
+                "price": 13.5,
+                "descEn": "Finely minced raw meat, bulgur, and Lebanese spices served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000157",
+                "nameEn": "Kafta Plate",
+                "nameAr": "",
+                "price": 16.0,
+                "descEn": "Finely minced raw meat, parsley, onions, and black pepper served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000154",
+                "nameEn": "Mujarmashe Plate",
+                "nameAr": "",
+                "price": 17.0,
+                "descEn": "Finely chopped raw lamb and black pepper served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000155",
+                "nameEn": "Raw Ftileh Plate",
+                "nameAr": "",
+                "price": 18.0,
+                "descEn": "Premium raw veal fillet, sliced thin served with black pepper and fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000150",
+                "nameEn": "Lamb Liver Plate",
+                "nameAr": "",
+                "price": 15.0,
+                "descEn": "Chopped raw lamb liver, lamb fat and black pepper served with fresh vegetables.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000152",
+                "nameEn": "Mixed Raw Meat Plate",
+                "nameAr": "",
+                "price": 30.0,
+                "descEn": "A curated selection of our signature raw meat plates for sharing (Malseh, Mujarmashe, Kafta, and Lamb Liver).",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Sfiha Experts",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "0000000000000000000000c2",
+                "nameEn": "Signature Sfiha Dozen",
+                "nameAr": "",
+                "price": 8.5,
+                "descEn": "A mix of veal and lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000b7",
+                "nameEn": "Signature Sfiha 0.5 KG",
+                "nameAr": "",
+                "price": 19.0,
+                "descEn": "A mix of veal and lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000003af",
+                "nameEn": "Signature Sfiha 1 KG",
+                "nameAr": "",
+                "price": 36.0,
+                "descEn": "A mix of veal and lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000b3",
+                "nameEn": "Lamb Sfiha Dozen",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000a8",
+                "nameEn": "Lamb Sfiha 0.5 KG",
+                "nameAr": "",
+                "price": 21.0,
+                "descEn": "Lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000aa",
+                "nameEn": "Lamb Sfiha 1 KG",
+                "nameAr": "",
+                "price": 38.0,
+                "descEn": "Lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000234",
+                "nameEn": "Signature Round Sfiha Dozen",
+                "nameAr": "",
+                "price": 12.0,
+                "descEn": "A mix of veal and lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000af",
+                "nameEn": "Signature Round Sfiha 0.5 KG",
+                "nameAr": "",
+                "price": 20.0,
+                "descEn": "A blend of veal and lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000c0",
+                "nameEn": "Lamb Round Sfiha Dozen",
+                "nameAr": "",
+                "price": 13.0,
+                "descEn": "Lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000b5",
+                "nameEn": "Veal Sfiha Dozen",
+                "nameAr": "",
+                "price": 7.5,
+                "descEn": "Veal meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000a6",
+                "nameEn": "Veal Round Sfiha Dozen",
+                "nameAr": "",
+                "price": 11.0,
+                "descEn": "Veal meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000232",
+                "nameEn": "Signature Round Sfiha 1KG",
+                "nameAr": "",
+                "price": 38.0,
+                "descEn": "A blend of veal and lamb meat, tomato, onion, and pepper with our signature blend of spices.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000000b9",
+                "nameEn": "Pickles &amp; Lemon",
+                "nameAr": "",
+                "price": 1.5,
+                "descEn": "",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Grills",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000145",
+                "nameEn": "Tawouk Plate",
+                "nameAr": "",
+                "price": 14.5,
+                "descEn": "Grilled marinated chicken skewers (2 skewers), served your choice of grilled potato or french fries, pickles, and garlic cream.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000140",
+                "nameEn": "Grilled Lamb Meat Plate",
+                "nameAr": "",
+                "price": 21.0,
+                "descEn": "Grilled lamb skewers (2 skewers) with grilled tomato, grilled onion, hummus, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000014b",
+                "nameEn": "Grilled Kafta Plate",
+                "nameAr": "",
+                "price": 16.0,
+                "descEn": "Minced meat skewers (4 skewers), served with grilled tomato, grilled onion, hummus, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "0000000000000000000001f4",
+                "nameEn": "Grilled Veal Meat Plate",
+                "nameAr": "",
+                "price": 21.0,
+                "descEn": "Grilled veal skewers (2 skewers) with grilled tomato, grilled onion, hummus, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000143",
+                "nameEn": "Kabab Plate",
+                "nameAr": "",
+                "price": 17.0,
+                "descEn": "Minced meat skewers (4 skewers), served with grilled tomato, grilled onion, hummus, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000147",
+                "nameEn": "Kabab Orfali Plate",
+                "nameAr": "",
+                "price": 16.0,
+                "descEn": "Minced meat skewers (2 skewers) with grilled eggplant, grilled tomato, grilled onion, hummus, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000013f",
+                "nameEn": "Kabab Keshkhash Plate",
+                "nameAr": "",
+                "price": 16.0,
+                "descEn": "Minced meat skewers (4 skewers) served over a spicy tomato and green pepper sauce.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000146",
+                "nameEn": "Mixed Grill Plate",
+                "nameAr": "",
+                "price": 26.0,
+                "descEn": "A mix of 2 kabab skewers, 1 taouk skewer, and 1 grilled meat skewer, served with grilled tomato, grilled onion, hummus, garlic cream, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000014c",
+                "nameEn": "Grilled Kafta 0.5 KG",
+                "nameAr": "",
+                "price": 32.0,
+                "descEn": "10 minced meat skewers served with grilled tomato, grilled onion, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000013d",
+                "nameEn": "Tawouk 0.5 KG",
+                "nameAr": "",
+                "price": 27.5,
+                "descEn": "5 grilled marinated chicken skewers served with your choice of grilled potato or french fries, served with pickles and garlic cream.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000013b",
+                "nameEn": "Kabab 0.5 KG",
+                "nameAr": "",
+                "price": 32.0,
+                "descEn": "10 minced meat skewers served with grilled tomato, grilled onion, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000141",
+                "nameEn": "Grilled Meat 0.5 KG",
+                "nameAr": "",
+                "price": 38.0,
+                "descEn": "5 grilled lamb skewers served with grilled tomato, grilled onion, and biwaz.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000144",
+                "nameEn": "Mixed Grill 0.5 KG",
+                "nameAr": "",
+                "price": 31.0,
+                "descEn": "2 Skewers of Shekaf,2 Skewers of Tawouk,2 Skewers of Kabab,Onion,Tomato,Biwaz",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000014a",
+                "nameEn": "Riyash 0.5 KG",
+                "nameAr": "",
+                "price": 38.0,
+                "descEn": "Riyash,Tomato,Onion,Biwaz",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000013c",
+                "nameEn": "Arayes Kafta",
+                "nameAr": "",
+                "price": 16.0,
+                "descEn": "Saj bread filled with seasoned kafta and grilled until crisp and golden.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000013a",
+                "nameEn": "Half Grilled Chicken",
+                "nameAr": "",
+                "price": 15.0,
+                "descEn": "Half grilled marinated chicken served with your choice of grilled potato or french fries, with pickles and garlic cream.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000149",
+                "nameEn": "Chicken Wings",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Grilled marinated chicken wings (12 pcs), grilled potato, served with pickles and garlic cream.",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Main Course",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "00000000000000000000010b",
+                "nameEn": "Chicken Escalope",
+                "nameAr": "",
+                "price": 17.0,
+                "descEn": "Breaded fried chicken, fries, coleslaw and smoky mayo sauce.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000010d",
+                "nameEn": "Kafta in Oven",
+                "nameAr": "",
+                "price": 30.0,
+                "descEn": "Oven-baked kafta with tomato, green pepper, and onion.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000113",
+                "nameEn": "Meat in Oven",
+                "nameAr": "",
+                "price": 30.0,
+                "descEn": "Oven-baked meat with tomato, green pepper, and onion.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000010e",
+                "nameEn": "Chicken with Rice",
+                "nameAr": "",
+                "price": 18.0,
+                "descEn": "Grilled marinated chicken cooked with rice, cashews, and demi-glace sauce.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000021a",
+                "nameEn": "Chicken with Frikeh",
+                "nameAr": "",
+                "price": 18.0,
+                "descEn": "Grilled marinated chicken, frikeh, cashews, and demi-glace sauce.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000114",
+                "nameEn": "Lamb Meat with Rice",
+                "nameAr": "",
+                "price": 28.0,
+                "descEn": "Slow-cooked lamb meat, rice, cashews and demi-glace sauce.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000111",
+                "nameEn": "Lamb Meat with Frikeh",
+                "nameAr": "",
+                "price": 28.0,
+                "descEn": "Slow-cooked lamb meat, frikeh, cashews and demi-glace sauce.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000110",
+                "nameEn": "Kebbe and Shish Barak",
+                "nameAr": "",
+                "price": 14.0,
+                "descEn": "Kebbe (3 pcs), shish barak (5 pcs), yogurt, garlic, and coriander served with rice.",
+                "descAr": ""
+            },
+            {
+                "id": "000000000000000000000112",
+                "nameEn": "Vine Leaves and Lamb Cutlets",
+                "nameAr": "",
+                "price": 22.0,
+                "descEn": "Meat-stuffed vine leaves (18 pcs) and baby marrow (2 pcs), served with lamb cutlets (2 pcs).",
+                "descAr": ""
+            }
+        ]
+    },
+    {
+        "categoryEn": "Burgers",
+        "categoryAr": "",
+        "items": [
+            {
+                "id": "000000000000000000000163",
+                "nameEn": "Lebanese Burger",
+                "nameAr": "",
+                "price": 10.0,
+                "descEn": "Minced meat burger, coleslaw, fries and ketchup.",
+                "descAr": ""
+            },
+            {
+                "id": "00000000000000000000010f",
+                "nameEn": "Lebanese Burger Plate",
+                "nameAr": "",
+                "price": 14.0,
+                "descEn": "",
+                "descAr": ""
+            }
+        ]
+    }
+]
