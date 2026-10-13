@@ -219,18 +219,11 @@
         }
 
         // ==========================================
-        // 6. RENDER ADMIN BOARD & BILLS
+        // 6. RENDER ADMIN BOARD & BILLS (JSON DRIVEN)
         // ==========================================
         function renderAdmin() {
             const { tables, tableRequests, orders } = globalData;
-            const restoTables = (tables && tables[currentAdminRestaurant]) || {
-                1: { isOpen: false, canOrder: false, status: 'Valid' },
-                2: { isOpen: false, canOrder: false, status: 'Valid' },
-                3: { isOpen: false, canOrder: false, status: 'Valid' },
-                4: { isOpen: false, canOrder: false, status: 'Valid' },
-                5: { isOpen: false, canOrder: false, status: 'Valid' },
-                6: { isOpen: false, canOrder: false, status: 'Valid' }
-            };
+            const restoTables = (tables && tables[currentAdminRestaurant]) || {};
             const restoRequests = (tableRequests && tableRequests[currentAdminRestaurant]) || {};
 
             const restaurantOrders = (orders || []).filter(o => (o.restaurant || 'Default') === currentAdminRestaurant);
@@ -244,29 +237,36 @@
                 tablesTabBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 text-gray-300 border border-gray-700 transition";
             }
 
-            document.getElementById('tablesGrid').innerHTML = Object.keys(restoTables).map(k => {
-                const t = restoTables[k], isWaiting = restoRequests[k], isOccupied = activeTablesForResto.has(String(k));
-                return `
-                    <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'}">
-                        <div>
-                            <div class="flex justify-between items-center mb-1.5">
-                                <span class="font-bold text-sm text-amber-300">Table #${k}</span>
-                                <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${isOccupied ? 'bg-red-500 text-white' : 'bg-gray-800 border border-gray-600'}">${isOccupied ? 'Occupied' : t.status}</span>
+            const tableKeys = Object.keys(restoTables);
+            const gridContainer = document.getElementById('tablesGrid');
+
+            if (tableKeys.length === 0) {
+                gridContainer.innerHTML = `<p class="text-gray-400 italic text-sm col-span-full text-center py-6">No tables found. Add a table above to get started!</p>`;
+            } else {
+                gridContainer.innerHTML = tableKeys.map(k => {
+                    const t = restoTables[k], isWaiting = restoRequests[k], isOccupied = activeTablesForResto.has(String(k));
+                    return `
+                        <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'}">
+                            <div>
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="font-bold text-sm text-amber-300">Table #${k}</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${isOccupied ? 'bg-red-500 text-white' : 'bg-gray-800 border border-gray-600'}">${isOccupied ? 'Occupied' : t.status}</span>
+                                </div>
+                                ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold mb-1.5">🛎️ Wants to Order!</span>' : ''}
+                                <p class="text-[11px] text-gray-400 mb-0.5">Menu: <b>${t.isOpen ? 'OPEN 🟢' : 'LOCKED 🔒'}</b></p>
+                                <p class="text-[11px] text-gray-400 mb-2">Order: <b>${t.canOrder ? 'ACTIVE 🟢' : 'LOCKED 🔒'}</b></p>
                             </div>
-                            ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold mb-1.5">🛎️ Wants to Order!</span>' : ''}
-                            <p class="text-[11px] text-gray-400 mb-0.5">Menu: <b>${t.isOpen ? 'OPEN 🟢' : 'LOCKED 🔒'}</b></p>
-                            <p class="text-[11px] text-gray-400 mb-2">Order: <b>${t.canOrder ? 'ACTIVE 🟢' : 'LOCKED 🔒'}</b></p>
-                        </div>
-                        <div class="flex flex-col gap-1.5 mt-1">
-                            <button onclick="socket.emit('toggle_table', {restaurant: '${currentAdminRestaurant}', tableNum: '${k}'})" class="w-full py-1.5 rounded-lg text-[11px] font-semibold text-white transition ${t.isOpen ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}">
-                                ${t.isOpen ? 'Close Menu 🔒' : '1. Open Menu 🔓'}
-                            </button>
-                            <button onclick="socket.emit('toggle_order_permission', {restaurant: '${currentAdminRestaurant}', tableNum: '${k}'})" class="w-full py-1.5 rounded-lg text-[11px] font-semibold text-white transition ${t.canOrder ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}">
-                                ${t.canOrder ? 'Lock Order 🔒' : '2. Open Order 🚀'}
-                            </button>
-                        </div>
-                    </div>`;
-            }).join('');
+                            <div class="flex flex-col gap-1.5 mt-1">
+                                <button onclick="socket.emit('toggle_table', {restaurant: '${currentAdminRestaurant}', tableNum: '${k}'})" class="w-full py-1.5 rounded-lg text-[11px] font-semibold text-white transition ${t.isOpen ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'}">
+                                    ${t.isOpen ? 'Close Menu 🔒' : '1. Open Menu 🔓'}
+                                </button>
+                                <button onclick="socket.emit('toggle_order_permission', {restaurant: '${currentAdminRestaurant}', tableNum: '${k}'})" class="w-full py-1.5 rounded-lg text-[11px] font-semibold text-white transition ${t.canOrder ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}">
+                                    ${t.canOrder ? 'Lock Order 🔒' : '2. Open Order 🚀'}
+                                </button>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
 
             document.getElementById('billsList').innerHTML = restaurantOrders.length === 0 ? '<p class="text-gray-400 italic text-sm">No active bills for this restaurant.</p>' : restaurantOrders.map(o => `
                 <div class="flex justify-between items-center border-b border-gray-700 pb-3 text-sm text-gray-300">

@@ -45,17 +45,6 @@ function saveJSON(filePath, data) {
     } catch (e) { console.error(`Error writing ${filePath}:`, e); }
 }
 
-function getDefaultTables() {
-    return {
-        1: { isOpen: false, canOrder: false, status: 'Valid' },
-        2: { isOpen: false, canOrder: false, status: 'Valid' },
-        3: { isOpen: false, canOrder: false, status: 'Valid' },
-        4: { isOpen: false, canOrder: false, status: 'Valid' },
-        5: { isOpen: false, canOrder: false, status: 'Valid' },
-        6: { isOpen: false, canOrder: false, status: 'Valid' }
-    };
-}
-
 let tables = loadJSON(tablesFilePath, {});
 let tableRequests = loadJSON(requestsFilePath, {});
 let orders = loadJSON(ordersFilePath, []);
@@ -63,7 +52,7 @@ let paidOrderHistory = loadJSON(paidHistoryFilePath, []);
 
 function ensureRestaurantTables(restaurantName) {
     if (!tables[restaurantName]) {
-        tables[restaurantName] = getDefaultTables();
+        tables[restaurantName] = {}; // Strictly empty by default until added from JSON/Admin
         saveJSON(tablesFilePath, tables);
     }
     if (!tableRequests[restaurantName]) {
