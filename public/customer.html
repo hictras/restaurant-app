@@ -24,29 +24,28 @@
             }
         }
 
+        function showError(message) {
+            document.body.innerHTML = `
+                <div class="bg-gray-800 border border-red-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-3">
+                    <div class="text-4xl">⚠️</div>
+                    <h2 class="text-lg font-bold text-red-400">Error Page</h2>
+                    <p class="text-xs text-gray-300">${message}</p>
+                </div>`;
+        }
+
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            let rawTbl = urlParams.get('tbl') || urlParams.get('table');
-            let rawRst = urlParams.get('rst');
-            let lifetimeParam = urlParams.get('lifetime') || '15';
-
-            if (!rawTbl) {
-                const searchStr = window.location.search.replace('?', '');
-                if (searchStr.startsWith('tbl')) rawTbl = searchStr.replace('tbl', '');
-            }
+            const rawTbl = urlParams.get('tbl');
+            const rawRst = urlParams.get('rst');
+            const lifetimeParam = urlParams.get('lifetime') || '15';
 
             if (!rawTbl || !rawRst) {
-                document.body.innerHTML = `
-                    <div class="bg-gray-800 border border-red-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-3">
-                        <div class="text-4xl">⚠️</div>
-                        <h2 class="text-lg font-bold text-red-400">Error Page</h2>
-                        <p class="text-xs text-gray-300">Please scan the official QR code located on your table.</p>
-                    </div>`;
+                showError('Please scan the official QR code located on your table.');
                 return;
             }
 
-            const currentTable = rawTbl.length > 5 || isNaN(rawTbl) ? decodeParam(rawTbl) : rawTbl;
-            const currentRestaurant = rawRst.length > 5 ? decodeParam(rawRst) : rawRst;
+            const currentTable = decodeParam(rawTbl);
+            const currentRestaurant = decodeParam(rawRst);
 
             try {
                 const res = await fetch('/api/create-session', {
@@ -61,19 +60,15 @@
                 const data = await res.json();
 
                 if (data.success && data.token) {
-                    const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
-                    localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: data.token }));
+                    // Persist start time + token under the SAME key menu.html uses
+                    localStorage.setItem(`restaurant_session_token_${data.token}`, Date.now());
+                    localStorage.setItem(`restaurant_session_expires_${data.token}`, data.expiresAt);
                     window.location.replace(`/menu.html?token=${data.token}`);
                 } else {
-                    throw new Error();
+                    throw new Error(data.message || 'Failed to create session');
                 }
             } catch (e) {
-                document.body.innerHTML = `
-                    <div class="bg-gray-800 border border-red-500/50 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl space-y-3">
-                        <div class="text-4xl">⚠️</div>
-                        <h2 class="text-lg font-bold text-red-400">Error Page</h2>
-                        <p class="text-xs text-gray-300">Failed to establish a secure table session.</p>
-                    </div>`;
+                showError('Failed to establish a secure table session. ' + (e.message || ''));
             }
         };
     </script>

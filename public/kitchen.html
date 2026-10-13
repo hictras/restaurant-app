@@ -13,9 +13,7 @@
         <div class="flex items-center gap-4">
             <h1 class="text-2xl font-bold text-amber-400 flex items-center gap-2">🍳 Kitchen Display <span id="connStatus" class="w-3 h-3 rounded-full bg-red-500 inline-block" title="Disconnected"></span></h1>
         </div>
-
         <div id="restaurantNavButtons" class="flex flex-wrap items-center gap-2"></div>
-
         <div class="flex items-center gap-3">
             <a href="admin.html" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition">← Admin Panel</a>
         </div>
@@ -26,7 +24,6 @@
             <h2 id="activeRestoTitle" class="text-xl font-bold text-amber-300">Active Kitchen Orders</h2>
             <span id="orderCountBadge" class="bg-indigo-600 text-white text-xs px-3 py-1 rounded-full font-bold">0 Active Orders</span>
         </div>
-
         <div id="kitchenOrdersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <p class="text-gray-400 italic">Loading kitchen orders...</p>
         </div>
@@ -37,7 +34,7 @@
         let latestState = { tables: {}, tableRequests: {}, orders: [] };
         let selectedKitchenRestaurant = '';
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        let previousOrderCount = 0;
+        let previousOrderCount = -1;
 
         socket.on('connect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block"; });
         socket.on('disconnect', () => { document.getElementById('connStatus').className = "w-3 h-3 rounded-full bg-red-500 inline-block"; });
@@ -45,8 +42,7 @@
         socket.on('state_update', (data) => {
             latestState = data;
             const activeKitchenOrders = (data.orders || []).filter(o => o.kitchenStatus !== 'Sent to Table');
-
-            if (activeKitchenOrders.length > previousOrderCount && previousOrderCount !== 0) {
+            if (activeKitchenOrders.length > previousOrderCount && previousOrderCount >= 0) {
                 alertSound.play().catch(e => console.log('Audio blocked:', e));
             }
             previousOrderCount = activeKitchenOrders.length;
@@ -89,10 +85,9 @@
                 return;
             }
 
-            grid.innerHTML = filteredOrders.map((ord, idx) => {
+            grid.innerHTML = filteredOrders.map((ord) => {
                 const isReady = ord.kitchenStatus === 'Ready';
                 const isCooking = ord.kitchenStatus === 'Cooking';
-
                 return `
                 <div class="bg-gray-800 border ${isReady ? 'border-emerald-500 shadow-emerald-500/10' : 'border-gray-700'} rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
                     <div>
@@ -120,18 +115,13 @@
                             }).join('')}
                         </ul>
                     </div>
-
                     <div class="space-y-2 pt-3 border-t border-gray-700">
                         <div class="flex justify-between items-center text-xs font-bold text-gray-400">
                             <span>Total: <span class="text-white">$${(ord.total || 0).toFixed(2)}</span></span>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <button onclick="socket.emit('update_kitchen_status', { orderId: '${ord.orderId}', kitchenStatus: 'Cooking' })" class="bg-amber-600 hover:bg-amber-700 py-2 rounded-xl text-xs font-bold transition text-white">
-                                Set Cooking 🍳
-                            </button>
-                            <button onclick="socket.emit('update_kitchen_status', { orderId: '${ord.orderId}', kitchenStatus: 'Sent to Table' })" class="bg-emerald-600 hover:bg-emerald-700 py-2 rounded-xl text-xs font-bold transition text-white">
-                                Send to Table 🚀
-                            </button>
+                            <button onclick="socket.emit('update_kitchen_status', { orderId: '${ord.orderId}', kitchenStatus: 'Cooking' })" class="bg-amber-600 hover:bg-amber-700 py-2 rounded-xl text-xs font-bold transition text-white">Set Cooking 🍳</button>
+                            <button onclick="socket.emit('update_kitchen_status', { orderId: '${ord.orderId}', kitchenStatus: 'Sent to Table' })" class="bg-emerald-600 hover:bg-emerald-700 py-2 rounded-xl text-xs font-bold transition text-white">Send to Table 🚀</button>
                         </div>
                     </div>
                 </div>`;

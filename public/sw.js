@@ -1,23 +1,17 @@
-self.addEventListener('push', function(event) {
-    let data = { title: 'Restaurant Update', body: 'New notification from kitchen.' };
-    if (event.data) {
-        data = event.data.json();
-    }
-
-    const options = {
-        body: data.body,
-        icon: '/icon.png', // Optional icon path if available
-        badge: '/badge.png'
-    };
+self.addEventListener('push', function (event) {
+    let data = { title: 'Restaurant Update', body: 'You have a new notification.' };
+    try { data = event.data.json(); } catch (e) { /* ignore */ }
 
     event.waitUntil(
-        self.registration.showNotification(data.title, options)
+        self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png'
+        })
     );
 });
 
-self.addEventListener('notificationclick', function(event) {
+self.addEventListener('notificationclick', function (event) {
     event.notification.close();
-    event.waitUntil(
-        clients.openWindow('/')
-    );
+    event.waitUntil(clients.openWindow('/'));
 });

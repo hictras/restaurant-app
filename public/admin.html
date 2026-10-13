@@ -109,7 +109,7 @@
         let globalData = { tables: {}, tableRequests: {}, orders: [], activeSessions: {} };
         let currentAdminRestaurant = '';
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        let previousPendingCount = 0;
+        let previousPendingCount = -1;
 
         window.onload = async () => {
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
@@ -122,17 +122,19 @@
                 const restaurants = await res.json();
                 const selector = document.getElementById('adminRestaurantSelector');
                 selector.innerHTML = '';
+                if (restaurants.length === 0) {
+                    selector.innerHTML = '<option value="">No restaurants — create one by adding a menu file</option>';
+                    return;
+                }
                 restaurants.forEach(resto => {
                     const option = document.createElement('option');
                     option.value = resto; option.textContent = resto;
                     selector.appendChild(option);
                 });
-                if (restaurants.length > 0) {
-                    currentAdminRestaurant = restaurants[0];
-                    selector.value = currentAdminRestaurant;
-                    document.getElementById('activeMenuRestoLabel').innerText = `Active: ${currentAdminRestaurant}`;
-                    renderAdmin();
-                }
+                currentAdminRestaurant = restaurants[0];
+                selector.value = currentAdminRestaurant;
+                document.getElementById('activeMenuRestoLabel').innerText = `Active: ${currentAdminRestaurant}`;
+                renderAdmin();
             } catch (e) { console.error('Failed to load restaurants list', e); }
         }
 
@@ -165,7 +167,7 @@
             globalData = data;
             const restoRequests = (data.tableRequests && data.tableRequests[currentAdminRestaurant]) || {};
             const pendingCount = Object.values(restoRequests).filter(v => v === true).length;
-            if (pendingCount > previousPendingCount && previousPendingCount !== 0) {
+            if (pendingCount > previousPendingCount && previousPendingCount >= 0) {
                 alertSound.play().catch(e => console.log('Audio blocked.'));
                 triggerSystemNotification('Table Bell Ring 🛎️', 'A table is requesting order submission!');
             }
@@ -188,6 +190,7 @@
 
         async function addNewTable(e) {
             e.preventDefault();
+            if (!currentAdminRestaurant) return showModal('No Restaurant', 'Select or create a restaurant first.', '⚠️');
             const tNum = document.getElementById('newTableNum').value.trim();
             if (!tNum) return;
             try {
@@ -201,24 +204,16 @@
                     document.getElementById('newTableNum').value = '';
                     showModal('Table Added', `Table #${tNum} created successfully!`, '🪑');
                 }
-            } catch (err) {
-                console.error('Failed to add table:', err);
-            }
+            } catch (err) { console.error('Failed to add table:', err); }
         }
 
         async function deleteTable(tableNum) {
             if (!confirm(`Are you sure you want to delete Table #${tableNum}?`)) return;
             try {
-                const res = await fetch(`/api/tables/${encodeURIComponent(currentAdminRestaurant)}/${encodeURIComponent(tableNum)}`, {
-                    method: 'DELETE'
-                });
+                const res = await fetch(`/api/tables/${encodeURIComponent(currentAdminRestaurant)}/${encodeURIComponent(tableNum)}`, { method: 'DELETE' });
                 const data = await res.json();
-                if (data.success) {
-                    showModal('Table Deleted', `Table #${tableNum} was removed successfully.`, '🗑️');
-                }
-            } catch (err) {
-                console.error('Failed to delete table:', err);
-            }
+                if (data.success) showModal('Table Deleted', `Table #${tableNum} was removed successfully.`, '🗑️');
+            } catch (err) { console.error('Failed to delete table:', err); }
         }
 
         function renderAdmin() {
@@ -248,14 +243,11 @@
                     const t = restoTables[k], isWaiting = restoRequests[k], isOccupied = activeTablesForResto.has(String(k));
                     const openCount = restoActiveSessions[k] || 0;
                     const isMenuOpen = openCount > 0;
-
                     return `
                         <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'} relative">
                             <button onclick="deleteTable('${k}')" title="Delete Table" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xs font-bold transition">✕</button>
                             <div>
-                                <div class="text-left mb-1">
-                                    <span class="font-bold text-sm text-amber-300">Table #${k}</span>
-                                </div>
+                                <div class="text-left mb-1"><span class="font-bold text-sm text-amber-300">Table #${k}</span></div>
                                 <div class="flex justify-between items-center mb-1.5 pr-4">
                                     <div class="flex items-center gap-1.5">
                                         <span class="w-2.5 h-2.5 rounded-full ${isMenuOpen ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]' : 'bg-gray-600'}" title="${isMenuOpen ? `${openCount} menu page(s) open` : 'Menu closed'}"></span>
@@ -385,7 +377,7 @@
         }
 
         async function openPrintQRCodesModal() {
-            if (!currentAdminRestaurant) return;
+            if (!currentAdminRestaurant) return showModal('No Restaurant', 'Select or create a restaurant first.', '⚠️');
             const lifetime = document.getElementById('tokenLifetimeSelect').value;
             document.getElementById('qrModalTitle').innerText = `🖨️ Table QR Codes (${currentAdminRestaurant}) - ${lifetime} min`;
 
@@ -402,8 +394,7 @@
                         <span class="text-sm font-semibold text-indigo-600 mb-3">Table #${l.tableNumber} (Click to View 🔗)</span>
                         <img src="${qrApi}" crossorigin="anonymous" alt="QR Table ${l.tableNumber}" class="w-32 h-32 mb-3 border p-1 bg-white rounded qr-img">
                         <span class="text-[10px] text-gray-400 break-all font-mono">${l.encodedUrl}</span>
-                    </a>
-                `;
+                    </a>`;
             }).join('');
 
             document.getElementById('qrPrintModal').classList.remove('hidden');
@@ -414,10 +405,7 @@
             const folder = zip.folder(`${currentAdminRestaurant}_QR_Codes`);
             const cards = document.querySelectorAll('.qr-card');
 
-            if (cards.length === 0) {
-                alert('No QR codes found to download.');
-                return;
-            }
+            if (cards.length === 0) { alert('No QR codes found to download.'); return; }
 
             for (const card of cards) {
                 const tableNum = card.getAttribute('data-table');
@@ -426,9 +414,7 @@
                     const response = await fetch(imgEl.src);
                     const blob = await response.blob();
                     folder.file(`Table_${tableNum}.png`, blob);
-                } catch (e) {
-                    console.error(`Failed to download QR for table ${tableNum}`, e);
-                }
+                } catch (e) { console.error(`Failed to download QR for table ${tableNum}`, e); }
             }
 
             const content = await zip.generateAsync({ type: 'blob' });
