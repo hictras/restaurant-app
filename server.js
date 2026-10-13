@@ -133,8 +133,8 @@ function encodeTableParam(text) {
     return Buffer.from(String(text)).toString('base64').replace(/=/g, '').split('').reverse().join('');
 }
 
-// Track socket connection maps for instant disconnect cleanup
-const socketSessions = {};
+// Track multiple sockets per table session: { "Restaurant_TableNum": Set([socketId1, socketId2]) }
+const tableSockets = {};
 
 io.on('connection', (socket) => {
     socket.emit('state_update', getAppState());
@@ -142,6 +142,7 @@ io.on('connection', (socket) => {
     socket.on('register_session', ({ restaurant, tableNumber, token }, callback) => {
         const resto = restaurant || 'Default';
         const tKey = String(tableNumber);
+        const sessionKey = `${resto}_${tKey}`;
         const startTime = Date.now();
 
         db.prepare(`
@@ -151,18 +152,29 @@ io.on('connection', (socket) => {
             DO UPDATE SET token = excluded.token, start_time = excluded.start_time
         `).run(resto, tKey, token, startTime);
 
-        // Map socket ID to session for instant disconnect removal
-        socketSessions[socket.id] = { restaurant: resto, tableNumber: tKey };
+        // Track socket connection for this table session
+        if (!tableSockets[sessionKey]) tableSockets[sessionKey] = new Set();
+        tableSockets[sessionKey].add(socket.id);
+        socket.tableSessionKey = sessionKey;
 
         io.emit('state_update', getAppState());
         if (typeof callback === 'function') callback({ success: true });
     });
 
     socket.on('disconnect', () => {
-        const session = socketSessions[socket.id];
-        if (session) {
-            db.prepare('DELETE FROM sessions WHERE restaurant = ? AND table_number = ?').run(session.restaurant, session.tableNumber);
-            delete socketSessions[socket.id];
+        const sessionKey = socket.tableSessionKey;
+        if (sessionKey && tableSockets[sessionKey]) {
+            tableSockets[sessionKey].delete(socket.id);
+
+            // Only remove session from DB if NO OTHER tabs/devices are connected to this table
+            if (tableSockets[sessionKey].size === 0) {
+                delete tableSockets[sessionKey];
+                const lastUnderscore = sessionKey.lastIndexOf('_');
+                const resto = sessionKey.substring(0, lastUnderscore);
+                const tKey = sessionKey.substring(lastUnderscore + 1);
+                db.prepare('DELETE FROM sessions WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
+            }
+
             io.emit('state_update', getAppState());
         }
     });
