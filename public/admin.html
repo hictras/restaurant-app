@@ -96,7 +96,7 @@
     <script>
         const socket = io();
         let currentTab = 'tables';
-        let globalData = { tables: {}, tableRequests: {}, orders: [] };
+        let globalData = { tables: {}, tableRequests: {}, orders: [], activeSessions: {} };
         let currentAdminRestaurant = '';
         const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         let previousPendingCount = 0;
@@ -230,9 +230,10 @@
         // 6. RENDER ADMIN BOARD & BILLS
         // ==========================================
         function renderAdmin() {
-            const { tables, tableRequests, orders } = globalData;
+            const { tables, tableRequests, orders, activeSessions } = globalData;
             const restoTables = (tables && tables[currentAdminRestaurant]) || {};
             const restoRequests = (tableRequests && tableRequests[currentAdminRestaurant]) || {};
+            const restoActiveSessions = (activeSessions && activeSessions[currentAdminRestaurant]) || {};
 
             const restaurantOrders = (orders || []).filter(o => (o.restaurant || 'Default') === currentAdminRestaurant);
             const activeTablesForResto = new Set(restaurantOrders.filter(o => o.billStatus !== 'Paid').map(o => String(o.tableNumber)));
@@ -253,12 +254,17 @@
             } else {
                 gridContainer.innerHTML = tableKeys.map(k => {
                     const t = restoTables[k], isWaiting = restoRequests[k], isOccupied = activeTablesForResto.has(String(k));
+                    const isMenuOpen = !!restoActiveSessions[k];
+
                     return `
                         <div class="border border-gray-700 p-3 rounded-xl text-center flex flex-col justify-between ${isOccupied ? 'bg-red-900/30 border-red-500 text-red-200' : isWaiting ? 'bg-amber-900/40 border-amber-500 animate-pulse text-amber-200' : 'bg-gray-700/40 text-gray-200'} relative">
                             <button onclick="deleteTable('${k}')" title="Delete Table" class="absolute top-2 right-2 text-gray-400 hover:text-red-400 text-xs font-bold transition">✕</button>
                             <div>
                                 <div class="flex justify-between items-center mb-1.5 pr-4">
-                                    <span class="font-bold text-sm text-amber-300">Table #${k}</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-2.5 h-2.5 rounded-full ${isMenuOpen ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]' : 'bg-gray-600'}" title="${isMenuOpen ? 'Menu page is open on table' : 'Menu closed'}"></span>
+                                        <span class="font-bold text-sm text-amber-300">Table #${k}</span>
+                                    </div>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${isOccupied ? 'bg-red-500 text-white' : 'bg-gray-800 border border-gray-600'}">${isOccupied ? 'Occupied' : t.status}</span>
                                 </div>
                                 ${isWaiting ? '<span class="inline-block bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold mb-1.5">🛎️ Wants to Order!</span>' : ''}

@@ -95,6 +95,17 @@ function getAppState() {
         };
     });
 
+    // Get active sessions within 15-minute window
+    const activeSessions = {};
+    const sessionRows = db.prepare('SELECT restaurant, table_number, start_time FROM sessions').all();
+    const now = Date.now();
+    sessionRows.forEach(s => {
+        if (now - s.start_time <= 15 * 60 * 1000) {
+            if (!activeSessions[s.restaurant]) activeSessions[s.restaurant] = {};
+            activeSessions[s.restaurant][s.table_number] = true;
+        }
+    });
+
     const tableRequests = {};
     const reqRows = db.prepare('SELECT * FROM table_requests WHERE requested = 1').all();
     reqRows.forEach(r => {
@@ -115,7 +126,7 @@ function getAppState() {
         timestamp: o.timestamp
     }));
 
-    return { tables, tableRequests, orders };
+    return { tables, tableRequests, orders, activeSessions };
 }
 
 function encodeTableParam(text) {
@@ -137,6 +148,7 @@ io.on('connection', (socket) => {
             DO UPDATE SET token = excluded.token, start_time = excluded.start_time
         `).run(resto, tKey, token, startTime);
 
+        io.emit('state_update', getAppState());
         if (typeof callback === 'function') callback({ success: true });
     });
 
