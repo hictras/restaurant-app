@@ -118,6 +118,22 @@ db.exec(`
         );
 `);
 
+// ---------- Migrations for old DBs ----------
+function columnExists(table, column) {
+        const rows = db.prepare(`PRAGMA table_info(${table})`).all();
+        return rows.some(r => r.name === column);
+}
+if (!columnExists('orders', 'created_at')) {
+        db.exec('ALTER TABLE orders ADD COLUMN created_at INTEGER');
+        db.prepare('UPDATE orders SET created_at = ? WHERE created_at IS NULL').run(Date.now());
+        console.log('✅ Migrated: added orders.created_at');
+}
+if (!columnExists('paid_history', 'created_at')) {
+        db.exec('ALTER TABLE paid_history ADD COLUMN created_at INTEGER');
+        db.prepare('UPDATE paid_history SET created_at = ? WHERE created_at IS NULL').run(Date.now());
+        console.log('✅ Migrated: added paid_history.created_at');
+}
+
 const tableSockets = {};
 
 function getAppState() {
@@ -334,38 +350,43 @@ io.on('connection', (socket) => {
         });
 
         socket.on('place_order', ({ items, total, token }, callback) => {
-                const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
-                if (!isSessionValid(session)) {
-                        return callback({ success: false, message: 'Session expired or unauthorized.' });
+                try {
+                        const session = db.prepare('SELECT * FROM sessions WHERE token = ?').get(token);
+                        if (!isSessionValid(session)) {
+                                return callback({ success: false, message: 'Session expired or unauthorized.' });
+                        }
+
+                        const resto = session.restaurant;
+                        const tKey = session.table_number;
+
+                        const tableState = db.prepare('SELECT * FROM tables_state WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
+                        if (!tableState || !tableState.is_open || !tableState.can_order) {
+                                return callback({ success: false, message: 'Order submission is locked by the manager.' });
+                        }
+
+                        const orderId = uuidv4();
+                        const date = new Date().toISOString().split('T')[0];
+                        const timestamp = new Date().toLocaleTimeString();
+                        const createdAt = Date.now();
+                        const formattedItems = JSON.stringify(items.map(i => ({ ...i, checks: [false, false] })));
+
+                        const insertOrder = db.transaction(() => {
+                                db.prepare(`
+                                        INSERT INTO orders (order_id, restaurant, table_number, items, total, kitchen_status, bill_status, date, timestamp, created_at)
+                                        VALUES (?, ?, ?, ?, ?, 'Received', 'Unpaid', ?, ?, ?)
+                                `).run(orderId, resto, tKey, formattedItems, total, date, timestamp, createdAt);
+
+                                db.prepare('UPDATE tables_state SET can_order = 0 WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
+                        });
+
+                        insertOrder();
+                        io.to(`table_${resto}_${tKey}`).emit('order_placed_success');
+                        io.emit('state_update', getAppState());
+                        callback({ success: true, orderId });
+                } catch (e) {
+                        console.error('place_order failed:', e);
+                        if (typeof callback === 'function') callback({ success: false, message: 'Server error.' });
                 }
-
-                const resto = session.restaurant;
-                const tKey = session.table_number;
-
-                const tableState = db.prepare('SELECT * FROM tables_state WHERE restaurant = ? AND table_number = ?').get(resto, tKey);
-                if (!tableState || !tableState.is_open || !tableState.can_order) {
-                        return callback({ success: false, message: 'Order submission is locked by the manager.' });
-                }
-
-                const orderId = uuidv4();
-                const date = new Date().toISOString().split('T')[0];
-                const timestamp = new Date().toLocaleTimeString();
-                const createdAt = Date.now();
-                const formattedItems = JSON.stringify(items.map(i => ({ ...i, checks: [false, false] })));
-
-                const insertOrder = db.transaction(() => {
-                        db.prepare(`
-                                INSERT INTO orders (order_id, restaurant, table_number, items, total, kitchen_status, bill_status, date, timestamp, created_at)
-                                VALUES (?, ?, ?, ?, ?, 'Received', 'Unpaid', ?, ?, ?)
-                        `).run(orderId, resto, tKey, formattedItems, total, date, timestamp, createdAt);
-
-                        db.prepare('UPDATE tables_state SET can_order = 0 WHERE restaurant = ? AND table_number = ?').run(resto, tKey);
-                });
-
-                insertOrder();
-                io.to(`table_${resto}_${tKey}`).emit('order_placed_success');
-                io.emit('state_update', getAppState());
-                callback({ success: true, orderId });
         });
 
         socket.on('update_kitchen_status', ({ orderId, kitchenStatus }) => {
@@ -420,13 +441,13 @@ io.on('connection', (socket) => {
                 io.emit('state_update', getAppState());
         });
 
+        // ---------- Mark Paid → move to history, delete from live, end session if last ----------
         socket.on('update_bill_status', ({ orderId, billStatus }) => {
                 const order = db.prepare('SELECT * FROM orders WHERE order_id = ?').get(orderId);
                 if (!order) return;
 
-                db.prepare('UPDATE orders SET bill_status = ? WHERE order_id = ?').run(billStatus, orderId);
-
                 if (billStatus === 'Paid') {
+                        // 1. Copy into paid_history
                         db.prepare(`
                                 INSERT OR REPLACE INTO paid_history
                                 (order_id, restaurant, table_number, items, total, kitchen_status, bill_status, date, timestamp, created_at)
@@ -437,14 +458,16 @@ io.on('connection', (socket) => {
                                 order.created_at || Date.now()
                         );
 
-                        // Check if ALL orders for this table are now paid
+                        // 2. Remove from live orders → disappears from customer Served tab and admin Bills tab
+                        db.prepare('DELETE FROM orders WHERE order_id = ?').run(orderId);
+
+                        // 3. If nothing else remains unpaid for this table, end the session
                         const remainingUnpaid = db.prepare(`
                                 SELECT COUNT(*) AS c FROM orders
                                 WHERE restaurant = ? AND table_number = ? AND bill_status != 'Paid'
                         `).get(order.restaurant, order.table_number).c;
 
                         if (remainingUnpaid === 0) {
-                                // End every session for this table → customer page will be kicked out
                                 db.prepare('DELETE FROM sessions WHERE restaurant = ? AND table_number = ?')
                                     .run(order.restaurant, order.table_number);
 
@@ -452,6 +475,8 @@ io.on('connection', (socket) => {
                                         reason: 'paid'
                                 });
                         }
+                } else {
+                        db.prepare('UPDATE orders SET bill_status = ? WHERE order_id = ?').run(billStatus, orderId);
                 }
 
                 io.emit('state_update', getAppState());
@@ -589,10 +614,7 @@ app.put('/api/menu/:restaurantName/:itemId', (req, res) => {
         let menu = JSON.parse(fs.readFileSync(menuFilePath, 'utf8'));
         const { category, nameEn, nameAr, price } = req.body;
 
-        // Remove item from any category it currently lives in
-        menu.forEach(cat => {
-                cat.items = cat.items.filter(i => i.id !== itemId);
-        });
+        menu.forEach(cat => { cat.items = cat.items.filter(i => i.id !== itemId); });
 
         let cat = menu.find(c => c.categoryEn === category);
         if (!cat) {

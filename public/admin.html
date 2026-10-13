@@ -223,7 +223,7 @@
             const restoActiveSessions = (activeSessions && activeSessions[currentAdminRestaurant]) || {};
 
             const restaurantOrders = (orders || []).filter(o => (o.restaurant || 'Default') === currentAdminRestaurant);
-            const activeTablesForResto = new Set(restaurantOrders.filter(o => o.billStatus !== 'Paid').map(o => String(o.tableNumber)));
+            const activeTablesForResto = new Set(restaurantOrders.map(o => String(o.tableNumber)));
             const hasPendingRequests = Object.values(restoRequests).some(v => v === true);
             const tablesTabBtn = document.getElementById('tab-tables');
 
@@ -271,13 +271,17 @@
                 }).join('');
             }
 
-            document.getElementById('billsList').innerHTML = restaurantOrders.length === 0 ? '<p class="text-gray-400 italic text-sm">No active bills for this restaurant.</p>' : restaurantOrders.map(o => `
+            document.getElementById('billsList').innerHTML = restaurantOrders.length === 0
+                ? '<p class="text-gray-400 italic text-sm">No active bills for this restaurant.</p>'
+                : restaurantOrders.map(o => `
                 <div class="flex justify-between items-center border-b border-gray-700 pb-3 text-sm text-gray-300">
-                    <div><b>Table #${o.tableNumber}</b> - Total: <span class="text-amber-400 font-bold">$${o.total.toFixed(2)}</span> <span class="text-xs ml-2 px-2 py-0.5 rounded bg-gray-700 text-gray-300">Kitchen: ${o.kitchenStatus}</span></div>
+                    <div>
+                        <b>Table #${o.tableNumber}</b> — Total: <span class="text-amber-400 font-bold">$${o.total.toFixed(2)}</span>
+                        <span class="text-xs ml-2 px-2 py-0.5 rounded bg-gray-700 text-gray-300">Kitchen: ${o.kitchenStatus}</span>
+                    </div>
                     <div class="flex items-center gap-3">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${o.billStatus==='Paid'?'bg-emerald-900/60 text-emerald-300':'bg-amber-900/60 text-amber-300'}">${o.billStatus}</span>
-                        <button onclick="socket.emit('update_bill_status', {orderId: '${o.orderId}', billStatus: '${o.billStatus === 'Paid' ? 'Unpaid' : 'Paid'}'})" class="bg-gray-700 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-gray-600 transition">Toggle Paid</button>
-                        ${o.billStatus === 'Paid' ? `<button onclick="socket.emit('clear_bill', {orderId: '${o.orderId}'})" class="bg-rose-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-rose-700 transition">Clear ✓</button>` : ''}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-900/60 text-amber-300">${o.billStatus}</span>
+                        <button onclick="socket.emit('update_bill_status', {orderId: '${o.orderId}', billStatus: 'Paid'})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs font-semibold transition">Mark Paid ✓</button>
                     </div>
                 </div>`).join('');
         }
