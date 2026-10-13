@@ -443,18 +443,25 @@
                 return matchesResto && matchesTable;
             });
 
-            let notifiedOrders = JSON.parse(sessionStorage.getItem(`notified_orders_${currentRestaurant}_${currentTable}`) || '[]');
-            let notifiedSet = new Set(notifiedOrders);
+            // Use localStorage to persistently track notified orders across page refreshes
+            let persistentNotified = JSON.parse(localStorage.getItem(`notified_${currentRestaurant}_${currentTable}`) || '[]');
+            let notifiedSet = new Set(persistentNotified);
+            let updated = false;
 
             tableOrders.forEach(ord => {
                 if (ord.kitchenStatus === 'Sent to Table' && !notifiedSet.has(ord.orderId)) {
                     notifiedSet.add(ord.orderId);
-                    sessionStorage.setItem(`notified_orders_${currentRestaurant}_${currentTable}`, JSON.stringify(Array.from(notifiedSet)));
+                    persistentNotified.push(ord.orderId);
+                    updated = true;
 
                     showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared!`, '🍲');
                     triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
                 }
             });
+
+            if (updated) {
+                localStorage.setItem(`notified_${currentRestaurant}_${currentTable}`, JSON.stringify(persistentNotified));
+            }
 
             const countBadge = document.getElementById('headerOrderStatusCount');
             if (tableOrders.length > 0) {
