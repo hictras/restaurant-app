@@ -159,9 +159,6 @@
             ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "طلب إذن إرسال الطلب من المدير 🛎️", waitingOrderPermission: "⏳ في انتظار تفعيل زر الطلب من المدير..." }
         };
 
-        // ==========================================
-        // 1. OBFUSCATED URL DECODER HELPER
-        // ==========================================
         function decodeParam(encodedText) {
             try {
                 let rev = String(encodedText).split('').reverse().join('');
@@ -172,9 +169,6 @@
             }
         }
 
-        // ==========================================
-        // 2. INITIALIZATION & SESSION VALIDATION
-        // ==========================================
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             let rawTbl = urlParams.get('tbl') || urlParams.get('table');
@@ -189,7 +183,6 @@
             if (rawTbl) currentTable = rawTbl.length > 5 || isNaN(rawTbl) ? decodeParam(rawTbl) : rawTbl;
             if (rawRst) currentRestaurant = rawRst.length > 5 ? decodeParam(rawRst) : rawRst;
 
-            // Strict QR Scan Enforcement
             if (!currentTable || !currentRestaurant) {
                 showScanErrorNotice();
                 return;
@@ -213,7 +206,6 @@
                 sessionData = { startTime: Date.now(), token: newToken };
             }
 
-            // Register session securely with server
             socket.emit('register_session', { restaurant: currentRestaurant, tableNumber: currentTable, token: sessionData.token });
 
             startSessionCountdown();
@@ -227,7 +219,6 @@
             await loadMenuFromServer(currentRestaurant);
         };
 
-        // Sync cart across multiple tabs/devices on the same table
         socket.on('cart_synced', (data) => {
             if (isExpired) return;
             cart = data.cart || {};
@@ -235,7 +226,6 @@
             renderMenu();
         });
 
-        // Switch all table devices to status view when any device places the order
         socket.on('order_placed_success', () => {
             if (isExpired) return;
             cart = {};
@@ -317,9 +307,6 @@
             `;
         }
 
-        // ==========================================
-        // 3. TAB NAVIGATION & MENU LOADER
-        // ==========================================
         function switchMainTab(tab) {
             if (isExpired) return;
             const isMenu = tab === 'menu';
@@ -352,9 +339,6 @@
             }
         });
 
-        // ==========================================
-        // 4. NOTIFICATIONS & MODALS
-        // ==========================================
         function requestNotificationPermission() {
             if ('Notification' in window) {
                 Notification.requestPermission().then(permission => {
@@ -377,9 +361,6 @@
 
         function closeCustomModal() { document.getElementById('customModal').classList.add('hidden'); }
 
-        // ==========================================
-        // 5. REAL-TIME SOCKET STATE SYNCHRONIZATION
-        // ==========================================
         socket.on('state_update', (data) => {
             if (isExpired) return;
             latestServerState = data;
@@ -400,12 +381,10 @@
             canOrder = !!restoTable.canOrder;
 
             if (!wasTableOpen && tableIsOpen) {
-                activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                 showModal('Table Menu Activated!', 'The manager has activated your table menu. You can browse and add items!', '🎉');
             }
 
             if (!wasCanOrder && canOrder) {
-                activationSound.play().catch(e => console.log('Audio autoplay blocked:', e));
                 isWaitingForOrderPermission = false;
                 showModal('Order Approved! 🚀', 'The manager has unlocked your order button. You can now send your order!', '🚀');
             }
@@ -462,7 +441,6 @@
             tableOrders.forEach(ord => {
                 if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
                     sentToTableNotifiedIds.add(ord.orderId);
-                    activationSound.play().catch(e => console.log('Audio blocked:', e));
                     showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared!`, '🍲');
                     triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
                 }
@@ -522,9 +500,6 @@
             menuCategories.forEach(cat => cat.items.forEach(item => itemLookup[item.id] = item));
         }
 
-        // ==========================================
-        // 6. CART, LANGUAGE & MENU INTERACTION
-        // ==========================================
         function toggleLanguage() {
             if (isExpired) return;
             currentLang = currentLang === 'en' ? 'ar' : 'en';
@@ -668,14 +643,6 @@
                 const item = itemLookup[id];
                 if (!item) return;
                 total += item.price * cart[id];
-                orderItems.path({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] }); // fixed below in clean script
-            });
-
-            // Re-mapping order items correctly
-            orderItems = [];
-            Object.keys(cart).forEach(id => {
-                const item = itemLookup[id];
-                if (!item) return;
                 orderItems.push({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
             });
 
