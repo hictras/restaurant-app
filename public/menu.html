@@ -195,6 +195,19 @@
             renderMenu();
         });
 
+        // When any device at this table successfully places an order, clear cart, close drawer, and switch all devices to status view
+        socket.on('order_placed_success', () => {
+            if (isExpired) return;
+            cart = {};
+            isCartOpen = false;
+            isWaitingForOrderPermission = false;
+            document.getElementById('cartDetails').style.display = 'none';
+            document.getElementById('chevronIcon').style.transform = 'rotate(0deg)';
+            updateCartUI();
+            renderMenu();
+            switchMainTab('status');
+        });
+
         function broadcastCart() {
             if (currentRestaurant && currentTable) {
                 socket.emit('update_cart', { restaurant: currentRestaurant, tableNumber: currentTable, cart });

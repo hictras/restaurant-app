@@ -98,7 +98,6 @@ function getAppState() {
         };
     });
 
-    // Get active sessions and count open menu connections/tabs
     const activeSessions = {};
     const sessionRows = db.prepare('SELECT restaurant, table_number, start_time FROM sessions').all();
     const now = Date.now();
@@ -161,14 +160,12 @@ io.on('connection', (socket) => {
         tableSockets[sessionKey].add(socket.id);
         socket.tableSessionKey = sessionKey;
 
-        // Join socket room for table-specific broadcasting
         socket.join(`table_${resto}_${tKey}`);
 
         io.emit('state_update', getAppState());
         if (typeof callback === 'function') callback({ success: true });
     });
 
-    // Real-time cart synchronization across multiple devices on the same table
     socket.on('update_cart', ({ restaurant, tableNumber, cart }) => {
         const resto = restaurant || 'Default';
         const tKey = String(tableNumber);
@@ -267,6 +264,10 @@ io.on('connection', (socket) => {
         });
 
         insertOrder();
+
+        // Broadcast order placement success to ALL devices at this table so they switch to status tab
+        io.to(`table_${resto}_${tKey}`).emit('order_placed_success');
+
         io.emit('state_update', getAppState());
         callback({ success: true, orderId });
     });
