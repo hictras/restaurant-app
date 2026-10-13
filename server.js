@@ -388,17 +388,29 @@ app.get('/api/qr-links', (req, res) => {
         const targetResto = req.query.restaurant;
         const files = fs.readdirSync(restaurantsDir);
         let restaurants = files.filter(f => f.endsWith('.json')).map(f => path.basename(f, '.json'));
-        if (targetResto) restaurants = restaurants.filter(r => r === targetResto);
+        if (targetResto) {
+            restaurants = restaurants.filter(r => r === targetResto);
+        }
 
         const allLinks = [];
         restaurants.forEach(resto => {
             const restoTables = db.prepare('SELECT table_number FROM tables_state WHERE restaurant = ?').all(resto);
             restoTables.forEach(t => {
-                const token = 'tok_' + uuidv4().replace(/-/g, '') + Date.now().toString(36);
-                db.prepare(`
-                    INSERT INTO sessions (token, restaurant, table_number, start_time)
-                    VALUES (?, ?, ?, ?)
-                `).run(token, resto, String(t.table_number), Date.now());
+                const tableNumStr = String(t.table_number);
+
+                let session = db.prepare('SELECT token, start_time FROM sessions WHERE restaurant = ? AND table_number = ?').get(resto, tableNumStr);
+                let token;
+
+                const now = Date.now();
+                if (session && (now - session.start_time <= 15 * 60 * 1000)) {
+                    token = session.token;
+                } else {
+                    token = 'tok_' + uuidv4().replace(/-/g, '') + now.toString(36);
+                    db.prepare(`
+                        INSERT OR REPLACE INTO sessions (token, restaurant, table_number, start_time)
+                        VALUES (?, ?, ?, ?)
+                    `).run(token, resto, tableNumStr, now);
+                }
 
                 allLinks.push({
                     restaurant: resto,
@@ -410,7 +422,7 @@ app.get('/api/qr-links', (req, res) => {
         res.json(allLinks);
     } catch (e) {
         console.error('QR Links Error:', e);
-        res.status(500).json({ error: 'Failed to generate QR links' });
+        res.status(500).json({ error: 'Failed to generate QR links', details: e.message });
     }
 });
 
