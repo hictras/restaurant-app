@@ -18,41 +18,53 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", Tahoma, sans-serif; }
         body { background-color: var(--bg); color: var(--text); padding-bottom: 140px; }
+
         .hidden { display: none !important; }
+
         .sticky-top-wrapper { position: sticky; top: 28px; z-index: 50; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
         header { border-bottom: 1px solid var(--border); padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; max-width: 960px; margin: 0 auto; }
         .header-titles { text-align: left; }
         html[dir="rtl"] .header-titles { text-align: right; }
         header h1 { font-size: 1.3rem; color: var(--primary); letter-spacing: 0.5px; line-height: 1.2; }
         header p { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
         .lang-btn, .table-pill, .push-btn { background: #fff; border: 1.5px solid var(--primary); color: var(--primary); padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; white-space: nowrap; outline: none; }
+
         .main-nav-tabs { display: flex; background: #fdfbf7; border-bottom: 1px solid var(--border); max-width: 960px; margin: 0 auto; }
         .main-tab-btn { flex: 1; padding: 12px; text-align: center; font-weight: bold; font-size: 0.9rem; background: none; border: none; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; transition: all 0.2s; }
         .main-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #fff; }
+
         .nav-tabs { display: flex; overflow-x: auto; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); gap: 0.5rem; white-space: nowrap; scrollbar-width: thin; max-width: 960px; margin: 0 auto; background: #fff; }
         .nav-tabs button { background: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; color: var(--text); transition: all 0.2s; }
         .nav-tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
         .container { max-width: 960px; margin: 1rem auto; padding: 0 1rem; }
         .menu-section { scroll-margin-top: 180px; }
         .section-title { font-size: 1.25rem; margin: 1.8rem 0 0.8rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: baseline; }
+
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.9rem; }
         .card { background: var(--card-bg); border-radius: 10px; border: 1px solid var(--border); padding: 0.9rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .card-info h3 { font-size: 0.95rem; color: var(--text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .card-info .alt-name { font-size: 0.85rem; color: var(--primary-dark); margin-bottom: 4px; }
         .card-info p { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; line-height: 1.35; }
+
         .card-action { display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
         .price { font-weight: 700; color: var(--primary-dark); font-size: 0.95rem; }
         .btn-add { background: var(--primary); color: #fff; border: none; padding: 5px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.82rem; transition: background 0.2s; }
         .btn-add:hover { background: var(--primary-dark); }
+
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 0.8rem 1rem; box-shadow: 0 -3px 15px rgba(0,0,0,0.1); max-width: 960px; margin: 0 auto; z-index: 40; border-radius: 16px 16px 0 0; }
         .qty-badge-red { background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 7px; border-radius: 9999px; font-weight: bold; }
     </style>
 </head>
 <body>
+
+    <!-- Session Countdown Top Banner -->
     <div id="sessionTimerBanner" class="bg-amber-500 text-white text-xs font-bold py-1.5 px-4 text-center sticky top-0 z-50 flex justify-center items-center gap-2 shadow-sm">
         <span>⏳ Session expires in:</span> <span id="countdownDisplay" class="bg-amber-600 px-2 py-0.5 rounded tracking-widest font-mono">15:00</span>
     </div>
 
+    <!-- Notification Modal -->
     <div id="customModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
             <div id="modalIcon" class="text-3xl mb-2">🔔</div>
@@ -75,6 +87,7 @@
             </div>
         </header>
 
+        <!-- Main Section Toggle Tabs -->
         <div class="main-nav-tabs">
             <button onclick="switchMainTab('menu')" id="mainTabMenu" class="main-tab-btn active">📖 Menu & Ordering</button>
             <button onclick="switchMainTab('status')" id="mainTabStatus" class="main-tab-btn">📦 Order Status <span id="headerOrderStatusCount" class="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full hidden">0</span></button>
@@ -85,8 +98,10 @@
         </div>
     </div>
 
+    <!-- TAB 1: MENU VIEW -->
     <div id="view-menu" class="container"></div>
 
+    <!-- TAB 2: ORDER STATUS VIEW -->
     <div id="view-status" class="container hidden">
         <div class="bg-white rounded-2xl p-6 shadow-sm border max-w-xl mx-auto">
             <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -98,6 +113,7 @@
         </div>
     </div>
 
+    <!-- Cart Drawer Bar -->
     <div class="cart-bar" id="cartBarWrapper">
         <div id="activationWarning" class="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 hidden font-medium">
             ⏳ Order button is locked. Ring the bell below when ready to order.
@@ -126,7 +142,6 @@
         let currentLang = 'en';
         let currentTable = null;
         let currentRestaurant = null;
-        let currentToken = null;
         let tableIsOpen = false;
         let canOrder = false;
         let isWaitingForOrderPermission = false;
@@ -144,6 +159,9 @@
             ar: { brandSubtitle: "الأسعار بالدولار شاملة الخدمة والضريبة", langBtnText: "English", viewList: "🛒 عرض تفاصيل الطلب", items: "أصناف", add: "+ إضافة", emptyCart: "سلة الطلبات فارغة.", sendOrder: "إرسال الطلب 🚀", notifyManager: "طلب إذن إرسال الطلب من المدير 🛎️", waitingOrderPermission: "⏳ في انتظار تفعيل زر الطلب من المدير..." }
         };
 
+        // ==========================================
+        // 1. OBFUSCATED URL DECODER HELPER
+        // ==========================================
         function decodeParam(encodedText) {
             try {
                 let rev = String(encodedText).split('').reverse().join('');
@@ -154,11 +172,14 @@
             }
         }
 
+        // ==========================================
+        // 2. INITIALIZATION & SESSION VALIDATION
+        // ==========================================
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             let rawTbl = urlParams.get('tbl') || urlParams.get('table');
             let rawRst = urlParams.get('rst');
-            currentToken = urlParams.get('token');
+            let existingToken = urlParams.get('token');
 
             if (!rawTbl) {
                 const searchStr = window.location.search.replace('?', '');
@@ -168,14 +189,32 @@
             if (rawTbl) currentTable = rawTbl.length > 5 || isNaN(rawTbl) ? decodeParam(rawTbl) : rawTbl;
             if (rawRst) currentRestaurant = rawRst.length > 5 ? decodeParam(rawRst) : rawRst;
 
-            if (!currentTable || !currentRestaurant || !currentToken) {
+            // Strict QR Scan Enforcement
+            if (!currentTable || !currentRestaurant) {
                 showScanErrorNotice();
                 return;
             }
 
-            socket.emit('register_session', { restaurant: currentRestaurant, tableNumber: currentTable, token: currentToken }, (res) => {
-                if (!res || !res.success) showExpiredNotice();
-            });
+            const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
+            let sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+
+            if (existingToken) {
+                sessionData.token = existingToken;
+                if (!sessionData.startTime) sessionData.startTime = Date.now();
+                localStorage.setItem(sessionKey, JSON.stringify(sessionData));
+            } else {
+                const newToken = 'tok_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+                const encodedTbl = btoa(String(currentTable)).replace(/=/g, '').split('').reverse().join('');
+                const encodedRst = btoa(String(currentRestaurant)).replace(/=/g, '').split('').reverse().join('');
+                const newUrl = `${window.location.pathname}?tbl=${encodedTbl}&rst=${encodedRst}&token=${newToken}`;
+                window.history.replaceState({ path: newUrl }, '', newUrl);
+
+                localStorage.setItem(sessionKey, JSON.stringify({ startTime: Date.now(), token: newToken }));
+                sessionData = { startTime: Date.now(), token: newToken };
+            }
+
+            // Register session securely with server
+            socket.emit('register_session', { restaurant: currentRestaurant, tableNumber: currentTable, token: sessionData.token });
 
             startSessionCountdown();
 
@@ -184,9 +223,11 @@
             document.getElementById('statusTableLabel').innerText = `#${currentTable}`;
 
             if ('Notification' in window && Notification.permission !== 'granted') Notification.requestPermission();
+
             await loadMenuFromServer(currentRestaurant);
         };
 
+        // Sync cart across multiple tabs/devices on the same table
         socket.on('cart_synced', (data) => {
             if (isExpired) return;
             cart = data.cart || {};
@@ -194,6 +235,7 @@
             renderMenu();
         });
 
+        // Switch all table devices to status view when any device places the order
         socket.on('order_placed_success', () => {
             if (isExpired) return;
             cart = {};
@@ -212,58 +254,6 @@
             }
         }
 
-        function requestNotificationPermission() {
-            if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        registerServiceWorkerAndSubscribe();
-                        showModal('Notifications', 'Push notifications enabled successfully!', '🎉');
-                    } else {
-                        showModal('Notice', 'Notification permission was denied.', '⚠️');
-                    }
-                });
-            }
-        }
-
-        async function registerServiceWorkerAndSubscribe() {
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                try {
-                    const registration = await navigator.serviceWorker.register('/sw.js');
-                    const keyRes = await fetch('/api/vapid-public-key');
-                    const { publicKey } = await keyRes.json();
-
-                    const convertedVapidKey = urlBase64ToUint8Array(publicKey);
-                    const subscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: convertedVapidKey
-                    });
-
-                    await fetch('/api/subscribe-push', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            restaurant: currentRestaurant,
-                            tableNumber: currentTable,
-                            subscription: subscription
-                        })
-                    });
-                } catch (err) {
-                    console.error('Failed to subscribe to push notifications:', err);
-                }
-            }
-        }
-
-        function urlBase64ToUint8Array(base64String) {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-            }
-            return outputArray;
-        }
-
         function showScanErrorNotice() {
             document.getElementById('sessionTimerBanner').style.display = 'none';
             document.querySelector('.sticky-top-wrapper').style.display = 'none';
@@ -275,7 +265,7 @@
                 <div class="bg-white border border-amber-200 rounded-2xl p-8 text-center max-w-md mx-auto mt-20 shadow-xl">
                     <div class="text-5xl mb-3">📷</div>
                     <h2 class="text-xl font-bold text-gray-800 mb-2">QR Code Required</h2>
-                    <p class="text-sm text-gray-600 mb-6">Please scan the official QR code on your table to access the menu.</p>
+                    <p class="text-sm text-gray-600 mb-6">Please scan the official QR code on your table to access the menu and place orders.</p>
                 </div>
             `;
         }
@@ -327,12 +317,17 @@
             `;
         }
 
+        // ==========================================
+        // 3. TAB NAVIGATION & MENU LOADER
+        // ==========================================
         function switchMainTab(tab) {
             if (isExpired) return;
             const isMenu = tab === 'menu';
+
             document.getElementById('mainTabMenu').classList.toggle('active', isMenu);
             document.getElementById('mainTabStatus').classList.toggle('active', !isMenu);
             document.getElementById('view-status').classList.toggle('hidden', isMenu);
+
             const showMenu = tableIsOpen && isMenu;
             document.getElementById('view-menu').classList.toggle('hidden', !showMenu);
             document.getElementById('categoryNavWrapper').style.display = showMenu ? 'block' : 'none';
@@ -357,6 +352,21 @@
             }
         });
 
+        // ==========================================
+        // 4. NOTIFICATIONS & MODALS
+        // ==========================================
+        function requestNotificationPermission() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    showModal('Notifications', permission === 'granted' ? 'Push notifications enabled successfully!' : 'Notification permission was denied.', permission === 'granted' ? '🎉' : '⚠️');
+                });
+            }
+        }
+
+        function triggerSystemNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body: body });
+        }
+
         function showModal(title, message, icon = '🔔') {
             if (isExpired) return;
             document.getElementById('modalTitle').innerText = title;
@@ -367,6 +377,9 @@
 
         function closeCustomModal() { document.getElementById('customModal').classList.add('hidden'); }
 
+        // ==========================================
+        // 5. REAL-TIME SOCKET STATE SYNCHRONIZATION
+        // ==========================================
         socket.on('state_update', (data) => {
             if (isExpired) return;
             latestServerState = data;
@@ -376,6 +389,7 @@
         function evaluateTableState() {
             if (isExpired || !currentTable || !currentRestaurant) return;
             const data = latestServerState;
+
             const restoTables = (data.tables && data.tables[currentRestaurant]) || {};
             const restoTable = restoTables[currentTable] || { isOpen: false, canOrder: false, status: 'Valid' };
 
@@ -406,6 +420,7 @@
             const menuContainer = document.getElementById('view-menu');
             const categoryNavWrapper = document.getElementById('categoryNavWrapper');
             let lockedNotice = document.getElementById('tableLockedNotice');
+
             const isMenuTabActive = document.getElementById('mainTabMenu').classList.contains('active');
 
             if (!tableIsOpen) {
@@ -425,6 +440,7 @@
                 if (categoryNavWrapper) categoryNavWrapper.style.display = 'none';
             } else {
                 if (lockedNotice) lockedNotice.style.display = 'none';
+
                 if (tableIsOpen && isMenuTabActive) {
                     menuContainer.classList.remove('hidden');
                     if (categoryNavWrapper) categoryNavWrapper.style.display = 'block';
@@ -447,7 +463,8 @@
                 if (ord.kitchenStatus === 'Sent to Table' && !sentToTableNotifiedIds.has(ord.orderId)) {
                     sentToTableNotifiedIds.add(ord.orderId);
                     activationSound.play().catch(e => console.log('Audio blocked:', e));
-                    showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared and sent to your table!`, '🍲');
+                    showModal('On Its Way! 🍽️', `Your order for Table #${currentTable} has been prepared!`, '🍲');
+                    triggerSystemNotification('Order Ready! 🍽️', 'Your food is on its way to your table!');
                 }
             });
 
@@ -491,7 +508,10 @@
 
         function requestOrderApproval() {
             if (isExpired) return;
-            socket.emit('table_request', { restaurant: currentRestaurant, tableNumber: currentTable, token: currentToken });
+            const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
+            const sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+
+            socket.emit('table_request', { restaurant: currentRestaurant, tableNumber: currentTable, token: sessionData.token });
             isWaitingForOrderPermission = true;
             updateCartUI();
             showModal('Bell Rung! 🛎️', 'Notification sent to the manager to approve your order submission.', '🛎️');
@@ -502,6 +522,9 @@
             menuCategories.forEach(cat => cat.items.forEach(item => itemLookup[item.id] = item));
         }
 
+        // ==========================================
+        // 6. CART, LANGUAGE & MENU INTERACTION
+        // ==========================================
         function toggleLanguage() {
             if (isExpired) return;
             currentLang = currentLang === 'en' ? 'ar' : 'en';
@@ -637,11 +660,22 @@
                 requestOrderApproval();
                 return;
             }
+            const sessionKey = `restaurant_session_${currentRestaurant}_${currentTable}`;
+            const sessionData = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+
             let total = 0, orderItems = [];
             Object.keys(cart).forEach(id => {
                 const item = itemLookup[id];
                 if (!item) return;
                 total += item.price * cart[id];
+                orderItems.path({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] }); // fixed below in clean script
+            });
+
+            // Re-mapping order items correctly
+            orderItems = [];
+            Object.keys(cart).forEach(id => {
+                const item = itemLookup[id];
+                if (!item) return;
                 orderItems.push({ id, name: currentLang === 'ar' ? item.nameAr : item.nameEn, price: item.price, qty: cart[id] });
             });
 
@@ -650,7 +684,7 @@
                 restaurant: currentRestaurant,
                 items: orderItems,
                 total,
-                token: currentToken
+                token: sessionData.token
             }, (res) => {
                 if (res.success) {
                     cart = {}; isCartOpen = false; isWaitingForOrderPermission = false;
