@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
+const webpush = require('web-push');
 
 const app = express();
 const server = http.createServer(app);
@@ -13,6 +14,33 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Configure Web Push VAPID keys
+const vapidKeys = webpush.generateVAPIDKeys();
+webpush.setVapidDetails(
+    'mailto:admin@lastballoon.net',
+    vapidKeys.publicKey,
+    vapidKeys.privateKey
+);
+
+const tablePushSubscriptions = {};
+
+app.get('/api/vapid-public-key', (req, res) => {
+    res.json({ publicKey: vapidKeys.publicKey });
+});
+
+app.post('/api/subscribe-push', (req, res) => {
+    const { restaurant, tableNumber, subscription } = req.body;
+    const resto = restaurant || 'Default';
+    const tKey = String(tableNumber);
+    const sessionKey = `${resto}_${tKey}`;
+
+    if (!tablePushSubscriptions[sessionKey]) tablePushSubscriptions[sessionKey] = [];
+    if (!tablePushSubscriptions[sessionKey].some(sub => sub.endpoint === subscription.endpoint)) {
+        tablePushSubscriptions[sessionKey].push(subscription);
+    }
+    res.status(201).json({ success: true });
+});
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'customer.html'));
@@ -83,7 +111,6 @@ db.exec(`
 const restaurantsDir = path.join(__dirname, 'restaurants');
 if (!fs.existsSync(restaurantsDir)) fs.mkdirSync(restaurantsDir);
 
-// Track multiple sockets per table session: { "Restaurant_TableNum": Set([socketId1, socketId2]) }
 const tableSockets = {};
 
 function getAppState() {
@@ -264,16 +291,29 @@ io.on('connection', (socket) => {
         });
 
         insertOrder();
-
-        // Broadcast order placement success to ALL devices at this table so they switch to status tab
         io.to(`table_${resto}_${tKey}`).emit('order_placed_success');
-
         io.emit('state_update', getAppState());
         callback({ success: true, orderId });
     });
 
     socket.on('update_kitchen_status', ({ orderId, kitchenStatus }) => {
         db.prepare('UPDATE orders SET kitchen_status = ? WHERE order_id = ?').run(kitchenStatus, orderId);
+
+        const order = db.prepare('SELECT * FROM orders WHERE order_id = ?').get(orderId);
+        if (order) {
+            const sessionKey = `${order.restaurant}_${order.tableNumber}`;
+            const subs = tablePushSubscriptions[sessionKey] || [];
+
+            const payload = JSON.stringify({
+                title: kitchenStatus === 'Sent to Table' ? 'Order Delivered! 🍽️' : 'Kitchen Update 🍳',
+                body: kitchenStatus === 'Sent to Table' ? 'Your food has been delivered to your table!' : `Your order status is now: ${kitchenStatus}`
+            });
+
+            subs.forEach(sub => {
+                webpush.sendNotification(sub, payload).catch(err => console.error('Push send error:', err));
+            });
+        }
+
         io.emit('state_update', getAppState());
     });
 
